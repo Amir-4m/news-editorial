@@ -134,13 +134,12 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
-# Celery Config
-CELERY_USER = config("CELERY_USER", default='guest')
-CELERY_PASS = config("CELERY_PASS", default='guest')
-CELERY_HOST = config("CELERY_HOST", default='127.0.0.1')
-CELERY_PORT = config("CELERY_PORT", default='5672')
-CELERY_VHOST = config("CELERY_VHOST", default='n_editorial')
+# Celery
+CELERY_BROKER_URL = 'amqp://%(USER)s:%(PASS)s@%(HOST)s' % {
+    'USER': config('CELERY_USER'),
+    'PASS': config('CELERY_PASS'),
+    'HOST': config('CELERY_HOST'),
+}
 
-CELERY_BROKER_URL = f"amqp://{CELERY_USER}:{CELERY_PASS}@{CELERY_HOST}:{CELERY_PORT}/{CELERY_VHOST}"
 # CELERY_ENABLE_UTC = False
 # DJANGO_CELERY_BEAT_TZ_AWARE = False
