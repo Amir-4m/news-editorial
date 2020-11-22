@@ -1,0 +1,17 @@
+Django==3.0
+celery>=4.4, <4.5
+django-celery-beat
+
+python-decouple
+
+# crawler
+beautifulsoup4
+requests
+
+# admin
+Khayyam==3.0.17
+django_better_admin_arrayfield
+django-ckeditor
+
+# database
+psycopg2-binary

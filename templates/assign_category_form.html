@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+
+<p><h2><strong>Select Category to Assign:</strong></h2></p>
+    <br><br>
+
+<form action="" method="post">
+    {% csrf_token %}
+
+    {{ assign_category }}
+    <br><br>
+    <p><strong>News to be Assigned:</strong></p>
+
+    <ol>{{ news|unordered_list }}</ol>
+
+    <input type="hidden" name="action" value="assign_category" />
+    <input type="submit" name="_assign_category" value="Assign a Category to the News" />
+
+</form>
+
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+
+<p>Select Editor to Assign:</p>
+
+<form action="" method="post">
+    {% csrf_token %}
+
+    {{ assign_editor }}
+
+    <p>News to be Assigned:</p>
+
+    <ol>{{ news|unordered_list }}</ol>
+
+    <input type="hidden" name="action" value="assign_editor" />
+    <input type="submit" name="_assign_editor" value="Assign the News to the Selected Editor" />
+</form><br>
+    {% if e_messages %}
+<ul class="warning" style="background-color: yellow">
+    {% for message in e_messages %}
+        <li style="color: red"><h3 style="color: darkolivegreen"><strong>{{ message }}</strong></h3></li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}
