@@ -1,0 +1,4 @@
+include: "https://gitlab.hami.blue/gitlab-ci.yml"
+
+variables:
+  PROJECT_DIR: "news_editorial"
