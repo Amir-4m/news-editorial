@@ -4,6 +4,8 @@ DEVEL = True
 
 SECRET_KEY = ''
 
+ALLOWED_HOSTS = '127.0.0.1, localhost'
+
 # Database
 DB_NAME = ''
 DB_USER = ''

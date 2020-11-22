@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from celery.schedules import crontab
@@ -25,10 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False)
-DEVEL = config('DEVEL', default=False)
+DEBUG = config('DEBUG', default=False, cast=bool)
+DEVEL = config('DEVEL', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 
 # Application definition
 
