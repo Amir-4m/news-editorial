@@ -33,7 +33,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 # Application definition
 
 INSTALLED_APPS = [
-    'news.apps.NewsConfig',
+    'apps.news',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -127,6 +127,9 @@ TIME_ZONE = 'Asia/Tehran'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+
+# Fixtures
+FIXTURE_DIRS = [BASE_DIR / 'fixtures']
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
