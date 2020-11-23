@@ -1,4 +1,4 @@
-include: "https://gitlab.hami.blue/gitlab-ci.yml"
+include: "http://gitlab.yourblueapi.com/gitlab-ci.yml"
 
 variables:
   PROJECT_DIR: "news_editorial"
