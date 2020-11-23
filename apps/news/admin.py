@@ -2,13 +2,13 @@ import difflib
 
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import ugettext_lazy as _
-from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 
+from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 
 from .models import News, Category, NewsAgency, NewsSiteCategory
 from .forms import AssignEditor, AssignCategory, NewsForm
@@ -21,8 +21,8 @@ class NewsAdmin(admin.ModelAdmin):
     radio_fields = {"status": admin.HORIZONTAL, "priority": admin.HORIZONTAL}
 
     def get_queryset(self, request):
-        chief_group = Group.objects.get(name__exact="editors_chief").user_set.all()
-        monitoring_group = Group.objects.get(name__exact="monitoring").user_set.all()
+        chief_group = User.objects.filter(groups__name="editors_chief")
+        monitoring_group = User.objects.filter(groups__name="monitoring")
 
         if request.user.is_superuser or request.user in chief_group:
             return News.objects.all()
@@ -73,7 +73,7 @@ class NewsAdmin(admin.ModelAdmin):
         return "\n".join([c.title for c in obj.category.all()])
 
     def response_change(self, request, instance):
-        editors = Group.objects.get(name="editors").user_set.all()
+        editors = User.objects.filter(groups__name='editors')
         if request.user in editors:
             if "_edited" in request.POST:
                 matching_names_except_this = self.get_queryset(request).filter(
@@ -96,6 +96,7 @@ class NewsAdmin(admin.ModelAdmin):
         else:
             return super().response_change(request, instance)
 
+    # Custom Actions
     def assign_category(self, request, queryset):
         form = None
         if '_assign_category' in request.POST:
@@ -151,6 +152,7 @@ class NewsAdmin(admin.ModelAdmin):
                       {'news': queryset, 'assign_editor': form, 'e_messages': e_messages})
     assign_editor.short_description = _("Assign News to an Editor")
 
+    # Custom Fields
     def junk_status(self, request, queryset):
         queryset.update(status="junk")
     junk_status.short_description = _("Change the Status to Junk")

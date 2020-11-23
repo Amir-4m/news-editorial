@@ -11,3 +11,7 @@ def CrawlerDynamically(class_name):
     module = import_module('apps.news.crawler')
     return getattr(module, f'{class_name.upper()}Crawler')
 
+
+class WordPressHandler:
+    pass
+
