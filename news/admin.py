@@ -190,9 +190,3 @@ class NewsSiteCategoryAdmin(admin.ModelAdmin):
     list_display = ('site_category_name', 'category', 'news_agency', 'news_url')
     list_filter = ('category', 'news_agency')
     list_editable = ('news_agency',)
-
-
-admin.site.site_header = _("Chapar News Editorial")
-admin.site.site_title = _("Chapar News")
-admin.site.index_title = _("Welcome to Chapar News")
-admin.site.empty_value_display = _("Unknown")
