@@ -22,7 +22,7 @@ class Crawler:
             logging.error(f'NewsAgency object not found with this news_website: {self.website_name}')
             return
         if self.news_agency.crawl_enable:
-            logging.info(f'Starting Crawler on {self.website_name}')
+            logging.info(f'Starting Crawl on {self.website_name}')
 
             # self.urls = [{ 'news_url': '<url>', 'category_id': 1 }, ...]
             # this value is just use in collect_links() method.

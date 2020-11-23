@@ -172,7 +172,7 @@ class NewsAgencyAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     def save_model(self, request, obj, form, change):
         if "_crawl" in request.POST:
-            collect_news_task.apply_async(args=(obj.news_website.split('.')[0],))
+            collect_news_task.apply_async(args=(obj.slug,))
             self.message_user(request, f"News from {obj.news_website} has been crawled")
             return HttpResponseRedirect(reverse_lazy('admin:news_news_changelist'))
         return super().save_model(request, obj, form, change)
@@ -190,9 +190,3 @@ class NewsSiteCategoryAdmin(admin.ModelAdmin):
     list_display = ('site_category_name', 'category', 'news_agency', 'news_url')
     list_filter = ('category', 'news_agency')
     list_editable = ('news_agency',)
-
-
-admin.site.site_header = _("Chapar News Editorial")
-admin.site.site_title = _("Chapar News")
-admin.site.index_title = _("Welcome to Chapar News")
-admin.site.empty_value_display = _("Unknown")
