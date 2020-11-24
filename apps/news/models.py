@@ -46,8 +46,8 @@ class News(models.Model):
     news_category = models.CharField(_("News Website Category"), max_length=50)
     news_site_id = models.BigIntegerField(_("News Site Id"))
     news_summary = models.TextField(_("News Head"))
-    news_main = models.TextField(_("News Main Content"), editable=False)
-    news_main_editable = models.TextField(_("News Main Content"))
+    news_main = models.TextField(_("news main content"), editable=False)
+    news_main_editable = models.TextField(_("news main editable"))
     comment = models.TextField(_("Editorial Chief Comment"), null=True, blank=True)
     news_date = models.DateField(_("News Date"))
     news_image = models.URLField(_("News Image"), max_length=1000)
@@ -59,6 +59,8 @@ class News(models.Model):
                                blank=True, null=True, limit_choices_to={'groups__name': "editors"})
 
     category = models.ManyToManyField("Category", verbose_name=_("Chapar Category"), related_name="news", blank=True)
+
+    wp_post_id = models.CharField(_('wordpress post id'), max_length=30, null=True)
 
     class Meta:
         verbose_name_plural = _("News")
