@@ -22,7 +22,4 @@ CELERY_HOST = '127.0.0.1'
 CELERY_PORT = 5672
 CELERY_VHOST = ''
 
-# WordPress
-WORDPRESS_SITE_ID = ''
-
 ```
