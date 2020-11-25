@@ -22,4 +22,8 @@ CELERY_HOST = '127.0.0.1'
 CELERY_PORT = 5672
 CELERY_VHOST = ''
 
+# WP Auth
+WP_USER = ''
+WP_PASS = ''
+
 ```
