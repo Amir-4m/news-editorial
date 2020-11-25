@@ -77,12 +77,11 @@ class WordPressHandler:
             auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
         )
         if req.ok:
-            print(req.json().keys())
             changes = 0
             for s in difflib.ndiff(self.instance.news_main, req.json()['content']['raw']):
                 if s[0] == "+" or s[0] == "-":
                     changes += 1
 
             self.instance.number_of_changes = changes
+            self.instance.news_main_editable = req.json()['content']['raw']
             self.instance.save()
-            print('Updating ...')
