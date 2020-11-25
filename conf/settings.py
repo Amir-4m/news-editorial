@@ -144,7 +144,10 @@ CELERY_BROKER_URL = 'amqp://%(USER)s:%(PASS)s@%(HOST)s' % {
     'HOST': config('CELERY_HOST'),
 }
 
-WORDPRESS_TOKEN = 'FJ2iFeOIiaUr2FCBRf4xALVzm5SYMMrd'
-
 # CELERY_ENABLE_UTC = False
 # DJANGO_CELERY_BEAT_TZ_AWARE = False
+
+# Wordpress Auth
+WP_USER = config('WP_USER')
+WP_PASS = config('WP_PASS')
+

@@ -57,14 +57,12 @@ class NewsAdmin(admin.ModelAdmin):
             self.change_form_template = 'admin/change_form.html'
 
         elif request.user.is_superuser or 'chief' in user_groups:
+            self.readonly_fields = ("news_site", "news_main", "number_of_changes")
             self.search_fields = ('news_site_id',)
             self.list_display = ("news_title", "status", "priority", "created_time", "news_site", "news_category",
                                  "chapar_category", "news_date", "editor", "news_site_id")
-            self.fields = ["news_site", "news_date", "category", "news_title", "news_summary", "news_main",
-                           "news_main_editable", "comment", "editor", "status", "priority", "number_of_changes",
-                           "news_image"]
             self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
-            self.readonly_fields = ("news_site", "news_main", "number_of_changes")
+
             self.actions = ["assign_editor", "assign_category"]
             self.change_form_template = 'admin/change_form.html'
         return super().changelist_view(request, extra_context)
@@ -164,7 +162,7 @@ class NewsAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("title",)
+    list_display = ("title", "word_press_id")
 
 
 @admin.register(NewsAgency)

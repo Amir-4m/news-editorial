@@ -1,10 +1,9 @@
-from base64 import b64encode, b64decode
+import difflib
 from importlib import import_module
-
-from django.conf import settings
 
 import requests
 from requests.auth import HTTPBasicAuth
+from django.conf import settings
 
 from .models import News
 
@@ -23,8 +22,7 @@ def CrawlerDynamically(class_name):
 class WordPressHandler:
     base_url = 'https://www.chapar.news/wp-json/wp/v2/'
     urls = {
-        'create-post': f'posts/',
-        'update-post': f'posts/'
+        'post': f'posts/',
     }
 
     def __init__(self, instance: News):
@@ -35,14 +33,15 @@ class WordPressHandler:
         self.instance = instance
 
     # def get_headers(self):
-        # return dict(Authorization=f"Bearer {settings.WORDPRESS_TOKEN}")
-        # return dict(Authorization="Basic %s" % b64encode('m.rezaei:09VqT4X1dxJOwB'))
+    # return dict(Authorization=f"Bearer {settings.WORDPRESS_TOKEN}")
+    # return dict(Authorization="Basic %s" % b64encode('m.rezaei:09VqT4X1dxJOwB'))
 
     def post_request(self, url, method='post', **kwargs):
         return requests.request(method, f"{self.base_url + url}", **kwargs)
 
     def create_post(self):
-        categories = [cat.title for cat in self.instance.category.all()]
+        categories = self.instance.category.all()
+
         payload_data = dict(
             title=self.instance.news_title,
             content=self.instance.news_main,
@@ -54,23 +53,36 @@ class WordPressHandler:
             password='',
             format='standard',
             media_urls=[self.instance.news_image],
-            publicize_message=categories
+            categories=[cat.word_press_id for cat in categories],
 
+            # tags= , (list|int)
             # date=self.instance.created_time.__str__(),
-            # categories=categories,  # (list|str) Comma-separated list or array of category names
-            # tags=categories,
             # terms=''
             # parent=''  # The post ID of the new post's parent.
         )
         req = self.post_request(
-            self.urls['create-post'], json=payload_data,
+            self.urls['post'], json=payload_data,
             headers={'Content-Type': 'application/json'},
-            auth=HTTPBasicAuth('m.rezaei', '09VqT4X1dxJOwB')
+            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
         )
         print(req.json())
         if req.ok:
             self.instance.wp_post_id = req.json()['id']
             self.instance.save()
 
-    def update_post(self):
-        req = self.post_request(f"{self.urls['update-post'] + self.instance.wp_post_id}")
+    def update_news_from_post(self):
+        req = self.post_request(
+            f"{self.urls['post'] + self.instance.wp_post_id}",
+            headers={'Content-Type': 'application/json'},
+            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
+        )
+        if req.ok:
+            print(req.json().keys())
+            changes = 0
+            for s in difflib.ndiff(self.instance.news_main, req.json()['content']['raw']):
+                if s[0] == "+" or s[0] == "-":
+                    changes += 1
+
+            self.instance.number_of_changes = changes
+            self.instance.save()
+            print('Updating ...')

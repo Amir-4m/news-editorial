@@ -60,14 +60,11 @@ class News(models.Model):
 
     category = models.ManyToManyField("Category", verbose_name=_("Chapar Category"), related_name="news", blank=True)
 
-    wp_post_id = models.CharField(_('wordpress post id'), max_length=30, null=True)
+    wp_post_id = models.CharField(_('wordpress post id'), max_length=30, blank=True)
 
     class Meta:
-        verbose_name_plural = _("News")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._b_status = self.status
+        verbose_name = _('news')
+        verbose_name_plural = _("news")
 
     def __str__(self):
         return self.news_title
@@ -78,6 +75,7 @@ class Category(models.Model):
     updated_time = models.DateTimeField(_('updated time'), auto_now=True)
 
     title = models.CharField(_("title"), max_length=100)
+    word_press_id = models.CharField(_('wordpress id '), max_length=5)
 
     class Meta:
         verbose_name_plural = _("Categories")
