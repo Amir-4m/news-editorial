@@ -68,6 +68,7 @@ class WordPressHandler:
         print(req.json())
         if req.ok:
             self.instance.wp_post_id = req.json()['id']
+            self.instance.status = News.STATUS_PUBLISHED
             self.instance.save()
 
     def update_news_from_post(self):

@@ -16,7 +16,8 @@ def collect_news_task(website_name):
 @shared_task
 def update_published_news():
     for news in News.objects.filter(
-        updated_time__lte=timezone.now() - timedelta(hours=72)
+        updated_time__lte=timezone.now() - timedelta(hours=72),
+        status=News.STATUS_APPROVED
     ).exclude(
         wp_post_id=''
     ):
