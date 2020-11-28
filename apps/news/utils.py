@@ -65,7 +65,6 @@ class WordPressHandler:
             headers={'Content-Type': 'application/json'},
             auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
         )
-        print(req.json())
         if req.ok:
             self.instance.wp_post_id = req.json()['id']
             self.instance.status = News.STATUS_PUBLISHED

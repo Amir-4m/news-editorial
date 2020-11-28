@@ -100,7 +100,7 @@ class ILNACrawler(Crawler):
 
                 news_title = soup.find("h1", class_="fb fn22 news_title mt8 mb8").get_text().strip()
 
-                news_summary = soup.find("p", class_="fn14 news_lead pr8 pl8 pt8 pb8")
+                news_summary = soup.find("p", class_="fn14 news_lead pr8 pl8 pt8 pb8").text
 
                 news_main_soup = soup.find("section", class_="article_body mt16 clearbox fn14 content").find_all(
                     "p")
@@ -121,7 +121,7 @@ class ILNACrawler(Crawler):
                                                                       "news_site": "ilna.news",
                                                                       "news_main": news_main,
                                                                       "news_main_editable": news_main,
-                                                                      "news_summary": str(news_summary),
+                                                                      "news_summary": news_summary,
                                                                       "news_date": news_date,
                                                                       "news_image": news_image})
                 if news_category_id:
@@ -201,7 +201,7 @@ class ISNACrawler(Crawler):
                 for i in range(len(news_main_text)):
                     news_main_text[i] = str(news_main_text[i])
 
-                news_summary = soup.find(class_="summary")
+                news_summary = soup.find(class_="summary").text
 
                 news_image = soup.find(class_="item-img img-md").find("img").attrs["src"]
 
@@ -213,7 +213,7 @@ class ISNACrawler(Crawler):
                                                                       "news_main": "".join(news_main_text),
                                                                       "news_main_editable": "".join(
                                                                           news_main_text),
-                                                                      "news_summary": str(news_summary),
+                                                                      "news_summary": news_summary,
                                                                       "news_date": news_date,
                                                                       "news_image": news_image})
                 if news_category_id:
@@ -275,7 +275,7 @@ class ENTEKHABCrawler(Crawler):
 
                 news_title = soup.find("h1", class_="title col-xs-36").get_text().strip()
 
-                news_summary = soup.find('div', class_="subtitle")
+                news_summary = soup.find('div', class_="subtitle").text
 
                 news_main = soup.find(class_="body col-xs-36").find_all(['a', 'p'])
 
@@ -304,7 +304,7 @@ class ENTEKHABCrawler(Crawler):
                                                                       "news_site": "entekhab.ir",
                                                                       "news_main": news_main,
                                                                       "news_main_editable": news_main,
-                                                                      "news_summary": str(news_summary),
+                                                                      "news_summary": news_summary,
                                                                       "news_date": news_date,
                                                                       "news_image": news_image, })
                 for category in chapar_category:
