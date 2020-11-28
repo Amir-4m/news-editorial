@@ -40,25 +40,26 @@ class News(models.Model):
 
     created_time = models.DateTimeField(_('created time'), auto_now_add=True)
     updated_time = models.DateTimeField(_('updated time'), auto_now=True)
-    news_title = models.CharField(_("News Title"), max_length=1500)
-    news_site = models.CharField(_("News Website"), max_length=50)
-    news_jalali_date = models.CharField(_("news Site Jalali Date"), max_length=50)
-    news_category = models.CharField(_("News Website Category"), max_length=50)
-    news_site_id = models.BigIntegerField(_("News Site Id"))
-    news_summary = models.TextField(_("News Head"))
+
+    news_title = models.CharField(_("title"), max_length=1500)
+    news_site = models.CharField(_("news site"), max_length=50)
+    news_jalali_date = models.CharField(_("news date"), max_length=50)
+    news_category = models.CharField(_("category"), max_length=50)
+    news_site_id = models.BigIntegerField(_("site id"))
+    news_summary = models.TextField(_("news summary"))
     news_main = models.TextField(_("news main content"), editable=False)
     news_main_editable = models.TextField(_("news main editable"))
     comment = models.TextField(_("Editorial Chief Comment"), null=True, blank=True)
-    news_date = models.DateField(_("News Date"))
-    news_image = models.URLField(_("News Image"), max_length=1000)
-    priority = models.CharField(_("Priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
-    status = models.CharField(_("Status"), choices=STATUS, default=STATUS_VOID, max_length=100)
-    number_of_changes = models.PositiveIntegerField(_("Number of Changes After Editing"), null=True, blank=True)
+    news_date = models.DateField(_("news Date"))
+    news_image = models.URLField(_("news image"), max_length=1000)
+    priority = models.CharField(_("priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
+    status = models.CharField(_("status"), choices=STATUS, default=STATUS_VOID, max_length=100)
+    number_of_changes = models.PositiveIntegerField(_("number of changes after editing"), null=True, blank=True)
 
-    editor = models.ForeignKey(User, verbose_name=_("Editor"), on_delete=models.CASCADE, related_name="news_editor",
+    editor = models.ForeignKey(User, verbose_name=_("editor"), on_delete=models.CASCADE, related_name="news_editor",
                                blank=True, null=True, limit_choices_to={'groups__name': "editors"})
 
-    category = models.ManyToManyField("Category", verbose_name=_("Chapar Category"), related_name="news", blank=True)
+    category = models.ManyToManyField("Category", verbose_name=_("chapar category"), related_name="news", blank=True)
 
     wp_post_id = models.CharField(_('wordpress post id'), max_length=30, blank=True)
 
@@ -101,7 +102,7 @@ class NewsAgency(models.Model):
     title = models.CharField(_('title'), max_length=50)
     slug = models.SlugField(_('slug'), unique=True)
 
-    news_website = models.CharField(_("news Website"), max_length=150)
+    news_website = models.CharField(_("news website"), max_length=150)
     crawl_enable = models.BooleanField(_("crawl enable"), default=True)
 
     class Meta:
