@@ -50,7 +50,7 @@ class NewsAdmin(admin.ModelAdmin):
             self.list_display = ("news_title", "status", "created_time", "news_site", "news_category",
                                  "chapar_category", "news_date")
             self.fields = ("news_site", "news_date", "news_summary", "news_main")
-            self.readonly_fields = ("news_site", "news_date", "news_summary", "news_main")
+            self.readonly_fields = ("news_site", "news_date", "news_summary", "news_main", 'wp_post_id')
             self.list_filter = ("news_site", "news_date", "category",)
             self.actions = ["junk_status", "editable_status"]
             self.search_fields = ("news_category",)

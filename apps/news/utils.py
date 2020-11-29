@@ -67,7 +67,6 @@ class WordPressHandler:
         )
         if req.ok:
             self.instance.wp_post_id = req.json()['id']
-            self.instance.status = News.STATUS_PUBLISHED
             self.instance.save()
 
     def update_news_from_post(self):
@@ -84,4 +83,6 @@ class WordPressHandler:
 
             self.instance.number_of_changes = changes
             self.instance.news_main_editable = req.json()['content']['raw']
-            self.instance.save()
+            if req.json()['status'] == 'publish':
+                self.instance.status = News.STATUS_PUBLISHED
+            self.instance.save(update_fields=['updated_time', 'number_of_changes', 'news_main_editable', 'status'])
