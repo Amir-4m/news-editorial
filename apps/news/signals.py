@@ -144,6 +144,6 @@ def collect_yjc_news():
 
 @receiver(models.signals.post_save, sender=News)
 def create_word_press_post(sender, instance, **kwargs):
-    if instance.wp_post_id == '' and instance.status == News.STATUS_PUBLISHED:
+    if instance.wp_post_id == '' and instance.status == News.STATUS_APPROVED:
         WordPressHandler(instance).create_post()
 
