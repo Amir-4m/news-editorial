@@ -43,14 +43,15 @@ class News(models.Model):
 
     news_title = models.CharField(_("title"), max_length=1500)
     news_site = models.CharField(_("news site"), max_length=50)
-    news_jalali_date = models.CharField(_("news date"), max_length=50)
     news_category = models.CharField(_("category"), max_length=50)
     news_site_id = models.BigIntegerField(_("site id"))
     news_summary = models.TextField(_("news summary"))
     news_main = models.TextField(_("news main content"), editable=False)
     news_main_editable = models.TextField(_("news main editable"))
     comment = models.TextField(_("Editorial Chief Comment"), null=True, blank=True)
-    news_date = models.DateField(_("news Date"))
+
+    news_date = models.DateTimeField(_("news Date"))
+
     news_image = models.URLField(_("news image"), max_length=1000)
     priority = models.CharField(_("priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
     status = models.CharField(_("status"), choices=STATUS, default=STATUS_VOID, max_length=100)

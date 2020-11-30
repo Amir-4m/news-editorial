@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
@@ -30,41 +31,66 @@ class NewsAdmin(admin.ModelAdmin):
             return News.objects.filter(status__in=["void", "junk", "editable"])
         return News.objects.filter(editor__exact=request.user).filter(status__in=["assigned", "rejected"])
 
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        user_groups = [g.name for g in request.user.groups.all()]
+        # Editors
+        if 'editors' in user_groups:
+            self.change_form_template = "edit_form.html"
+            self.readonly_fields = ("news_site", "status", "priority", 'get_current_news_title')
+            self.fieldsets = (
+                (_('news info'), {'fields': (
+                    "news_title", 'get_current_news_title', "news_site", "news_date", "status", "priority"
+                )}),
+                (_('news content'), {'fields': ("news_summary", "news_main_editable", "comment", "news_image")}),
+            )
+        # Monitors
+        elif 'monitoring' in user_groups:
+            self.change_form_template = 'admin/change_form.html'
+            self.fields = ("news_site", "news_date", "news_summary", "news_main_editable", 'get_news_main_content')
+            self.readonly_fields = ("news_site", "news_date", "news_summary", "get_news_main_content", 'wp_post_id')
+        # Superuser, Chief
+        elif request.user.is_superuser or 'chief' in user_groups:
+            self.change_form_template = 'admin/change_form.html'
+            self.fieldsets = (
+                ('news info', {'fields': (
+                    'news_site_id', 'wp_post_id', 'news_title', 'get_current_title', 'news_site',
+                    'news_summary', 'get_current_news_summary', 'priority', 'status', 'news_date'
+                )}),
+                ('news content', {
+                    'classes': ('collapse',),
+                    'fields': (
+                        'get_news_main_content', 'news_main_editable', 'news_image', 'category', 'news_category',
+                    )}),
+                ('news editor', {'classes': ('collapse',), 'fields': ('number_of_changes', 'editor', 'comment',)}),
+                # (None, {'fields': ('updated_time', 'created_time')})
+            )
+            self.readonly_fields = ('news_site_id', 'wp_post_id', "news_site", "get_news_main_content",
+                                    "number_of_changes", 'editor', 'get_current_title', 'get_current_news_summary')
+
+        return super().change_view(request, object_id, form_url, extra_context)
+
     def changelist_view(self, request, extra_context=None):
         user_groups = [g.name for g in request.user.groups.all()]
+        # Editors
         if 'editors' in user_groups:
-            self.list_display = (
-                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
-                "news_date",
-            )
-            self.fields = (
-                "news_site", "news_date", "news_title", "news_summary", "news_main_editable", "comment", "status",
-                "priority", "news_image"
-            )
+            self.list_display = ("news_title", "status", "priority", "created_time", "news_site", "news_category",
+                                 "chapar_category", "news_date")
             self.list_filter = ("news_site", "news_date", "priority")
-            self.readonly_fields = ("news_site", "status", "priority")
-            self.change_form_template = "edit_form.html"
             self.actions = []
-
+        # Monitors
         elif 'monitoring' in user_groups:
             self.list_display = ("news_title", "status", "created_time", "news_site", "news_category",
                                  "chapar_category", "news_date")
-            self.fields = ("news_site", "news_date", "news_summary", "news_main")
-            self.readonly_fields = ("news_site", "news_date", "news_summary", "news_main", 'wp_post_id')
             self.list_filter = ("news_site", "news_date", "category",)
             self.actions = ["junk_status", "editable_status"]
             self.search_fields = ("news_category",)
-            self.change_form_template = 'admin/change_form.html'
-
+        # Superuser, Chief
         elif request.user.is_superuser or 'chief' in user_groups:
-            self.readonly_fields = ("news_site", "news_main", "number_of_changes")
             self.search_fields = ('news_site_id',)
             self.list_display = ("news_title", "status", "priority", "created_time", "news_site", "news_category",
                                  "chapar_category", "news_date", "editor", "news_site_id")
             self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
-
-            self.actions = ["assign_editor", "assign_category"]
-            self.change_form_template = 'admin/change_form.html'
+            self.actions = ["assign_editor", "assign_category", 'junk_status']
         return super().changelist_view(request, extra_context)
 
     def chapar_category(self, obj):
@@ -150,7 +176,6 @@ class NewsAdmin(admin.ModelAdmin):
                       {'news': queryset, 'assign_editor': form, 'e_messages': e_messages})
     assign_editor.short_description = _("Assign News to an Editor")
 
-    # Custom Fields
     def junk_status(self, request, queryset):
         queryset.update(status="junk")
     junk_status.short_description = _("Change the Status to Junk")
@@ -158,6 +183,19 @@ class NewsAdmin(admin.ModelAdmin):
     def editable_status(self, request, queryset):
         queryset.update(status="editable")
     editable_status.short_description = _("Change the Status to Editable")
+
+    # Custom Fields
+    def get_news_main_content(self, obj):
+        return mark_safe(obj.news_main)
+    get_news_main_content.short_description = _('news main')
+
+    def get_current_news_summary(self, obj):
+        return mark_safe(f"<small>{obj.news_summary}</small>")
+    get_current_news_summary.short_description = _('current news summary')
+
+    def get_current_title(self, obj):
+        return mark_safe(f"<small>{obj.news_title}</small>")
+    get_current_title.short_description = _('current title')
 
 
 @admin.register(Category)
