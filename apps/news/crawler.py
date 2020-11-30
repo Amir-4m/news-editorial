@@ -1,11 +1,15 @@
 import logging
+import pytz
+from datetime import datetime
+
+from django.conf import settings
+from django.utils import timezone
 
 import requests
 from bs4 import BeautifulSoup
-from khayyam import JalaliDate
+from khayyam import JalaliDatetime
 
 from .models import News, NewsAgency, NewsSiteCategory
-
 
 jalali_months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 jalali_months_entekhab = ['فروردين', 'ارديبهشت', 'خرداد', 'تير', 'مرداد', 'شهريور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن',
@@ -85,11 +89,18 @@ class ILNACrawler(Crawler):
                 soup = BeautifulSoup(page.text, "html.parser")
 
                 news_site_id = int(soup.find(class_="inlineblock ml16").find("span").get_text())
-
-                news_date_time = soup.find_all("time")[1]
-                news_date = news_date_time.attrs['datetime'][0:10]
-
-                news_jalali_date = news_date_time.get_text().strip()
+                news_str_date = soup.find_all("time")[1].attrs['datetime']
+                news_date = news_str_date.split('-')  # ['2020', '11', '17T06:36:55Z']
+                news_time = news_str_date.split(':')  # ['2020-11-17T06', '36', '55Z']
+                news_date = datetime(
+                    int(news_date[0]),  # year
+                    int(news_date[1]),  # month
+                    int(news_date[2][:2]),  # day -> '15T04:28:25Z'
+                    int(news_time[0][-2:]),  # hour '2020-11-01T12'
+                    int(news_time[1]),  # minute
+                    int(news_time[2][:2]),
+                    tzinfo=pytz.timezone(settings.TIME_ZONE)
+                )
 
                 news_category = soup.find_all("a", class_="float ml4 mr4")[-1].get_text()
                 ilna_agency_categories = self.get_categories_name(category_id)
@@ -115,8 +126,7 @@ class ILNACrawler(Crawler):
                 ).find("img").attrs["src"]
 
                 news, _created = News.objects.get_or_create(news_site_id=news_site_id,
-                                                            defaults={"news_jalali_date": news_jalali_date,
-                                                                      "news_category": news_category,
+                                                            defaults={"news_category": news_category,
                                                                       "news_title": news_title,
                                                                       "news_site": "ilna.news",
                                                                       "news_main": news_main,
@@ -178,11 +188,18 @@ class ISNACrawler(Crawler):
             try:
                 news_jalali_date = soup.find(class_="title-meta").get_text().strip() + soup.find(
                     class_="text-meta").get_text().strip()
+                jalali_date_list = news_jalali_date.strip().split("/")
+                jalali_date_details = jalali_date_list[1].split(" ")  # date
+                jalali_time_details = jalali_date_list[2].split(':')  # time
 
-                jalali_date_list = news_jalali_date.split("/")
-                jalali_date_details = jalali_date_list[1].strip().split(" ")
-                news_date = JalaliDate(int(jalali_date_details[2]), jalali_months.index(jalali_date_details[1]) + 1,
-                                       int(jalali_date_details[0])).todate()
+                news_date = JalaliDatetime(
+                    int(jalali_date_details[2]),
+                    jalali_months.index(jalali_date_details[1]) + 1,
+                    int(jalali_date_details[0]),
+                    int(jalali_time_details[0]),
+                    int(jalali_time_details[1]),
+                    tzinfo=pytz.timezone(settings.TIME_ZONE)
+                ).todatetime()
 
                 news_category = soup.find_all(class_="text-meta")[1].get_text().strip()
                 isna_agency_categories = self.get_categories_name(category_id)
@@ -206,8 +223,7 @@ class ISNACrawler(Crawler):
                 news_image = soup.find(class_="item-img img-md").find("img").attrs["src"]
 
                 news, _created = News.objects.get_or_create(news_site_id=news_site_id,
-                                                            defaults={"news_jalali_date": news_jalali_date,
-                                                                      "news_category": news_category,
+                                                            defaults={"news_category": news_category,
                                                                       "news_title": news_title,
                                                                       "news_site": "isna.ir",
                                                                       "news_main": "".join(news_main_text),
@@ -284,29 +300,39 @@ class ENTEKHABCrawler(Crawler):
 
                 news_main = "".join(news_main)
 
+                # date
                 news_date = news_jalali_date.split("-")[1].strip().split(" ")
                 news_date_day = int(news_date[0])
                 news_date_month = jalali_months_entekhab.index(news_date[1]) + 1
                 news_date_year = int(news_date[-1])
-                news_date = JalaliDate(news_date_year, news_date_month, news_date_day).todate()
+
+                # time
+                news_time = news_jalali_date.split("-")[0].strip().split(' : ')
+                news_date = datetime(
+                    news_date_year,
+                    news_date_month,
+                    news_date_day,
+                    int(news_time[1]),
+                    int(news_time[0]),
+                    tzinfo=pytz.timezone(settings.TIME_ZONE)
+                )
 
                 news_image = soup.find("img", class_="image_btn")
                 if news_image:
                     news_image = news_image.attrs["src"]
                 else:
                     news_image = soup.find("img", class_="news_corner_image").attrs["src"]
-                news_image = f"https://www.entekhab.ir{news_image}"
 
-                news, _created = News.objects.get_or_create(news_site_id=news_site_id,
-                                                            defaults={"news_jalali_date": news_jalali_date,
-                                                                      "news_category": news_category,
-                                                                      "news_title": news_title,
-                                                                      "news_site": "entekhab.ir",
-                                                                      "news_main": news_main,
-                                                                      "news_main_editable": news_main,
-                                                                      "news_summary": news_summary,
-                                                                      "news_date": news_date,
-                                                                      "news_image": news_image, })
+                news_image = f"https://www.entekhab.ir{news_image}"
+                news, _created = News.objects.update_or_create(news_site_id=news_site_id,
+                                                               defaults={"news_category": news_category,
+                                                                         "news_title": news_title,
+                                                                         "news_site": "entekhab.ir",
+                                                                         "news_main": news_main,
+                                                                         "news_main_editable": news_main,
+                                                                         "news_summary": news_summary,
+                                                                         "news_date": news_date,
+                                                                         "news_image": news_image, })
                 for category in chapar_category:
                     news.category.add(category)
                 logging.info(f"news created!, id = {news_site_id}, website = entekhab.ir")
