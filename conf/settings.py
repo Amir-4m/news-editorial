@@ -137,6 +137,10 @@ FIXTURE_DIRS = [BASE_DIR / 'fixtures']
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
+# Media
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Celery
 CELERY_BROKER_URL = 'amqp://%(USER)s:%(PASS)s@%(HOST)s' % {
     'USER': config('CELERY_USER'),

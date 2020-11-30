@@ -1,11 +1,13 @@
+import random
+import os
 import difflib
 from importlib import import_module
 
+from django.conf import settings
+from django.utils import timezone
+
 import requests
 from requests.auth import HTTPBasicAuth
-from django.conf import settings
-
-from .models import News
 
 
 def CrawlerDynamically(class_name):
@@ -25,7 +27,7 @@ class WordPressHandler:
         'post': f'posts/',
     }
 
-    def __init__(self, instance: News):
+    def __init__(self, instance):
         """
         Args:
             instance: Instance is News object.
@@ -52,9 +54,9 @@ class WordPressHandler:
             sticky=False,  # False: (default) Post is not marked as sticky.
             password='',
             format='standard',
-            media_urls=[self.instance.news_image],
             categories=[cat.word_press_id for cat in categories],
 
+            media_urls=[self.instance.news_image],
             # tags= , (list|int)
             # date=self.instance.created_time.__str__(),
             # terms=''
@@ -70,6 +72,7 @@ class WordPressHandler:
             self.instance.save()
 
     def update_news_from_post(self):
+        from .models import News
         req = self.post_request(
             f"{self.urls['post'] + self.instance.wp_post_id}",
             headers={'Content-Type': 'application/json'},
@@ -86,3 +89,26 @@ class WordPressHandler:
             if req.json()['status'] == 'publish':
                 self.instance.status = News.STATUS_PUBLISHED
             self.instance.save(update_fields=['updated_time', 'number_of_changes', 'news_main_editable', 'status'])
+
+
+class UploadTo:
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, instance, filename):
+        base_filename, file_extension, random_str = self.generate_name(filename)
+        return f'images/{instance.__class__.__name__}/{instance.news_site}/{timezone.now().strftime("%y-%m-%d")}/' \
+               f'{base_filename}_{random_str}{file_extension}'
+
+    def random_string_generator(self, number, string=True):
+        chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+        nums = '1234567890'
+        return ''.join((random.choice(chars + str(nums) if string else nums)) for x in range(number))
+
+    def generate_name(self, filename):
+        base_filename, file_extension = os.path.splitext(filename)
+        return base_filename, file_extension, self.random_string_generator(3)
+
+    def deconstruct(self):
+        return 'apps.news.utils.UploadTo', [self.name], {}
+
