@@ -1,3 +1,4 @@
+import json
 import random
 import os
 import difflib
@@ -25,6 +26,7 @@ class WordPressHandler:
     base_url = 'https://www.chapar.news/wp-json/wp/v2/'
     urls = {
         'post': f'posts/',
+        'media': f'media/'
     }
 
     def __init__(self, instance):
@@ -38,12 +40,19 @@ class WordPressHandler:
     # return dict(Authorization=f"Bearer {settings.WORDPRESS_TOKEN}")
     # return dict(Authorization="Basic %s" % b64encode('m.rezaei:09VqT4X1dxJOwB'))
 
-    def post_request(self, url, method='post', **kwargs):
-        return requests.request(method, f"{self.base_url + url}", **kwargs)
+    def post_request(self, url, method='post', headers=None, **kwargs):
+        if headers:
+            kwargs.update({'headers': headers})
+        return requests.request(
+            method,
+            f"{self.base_url + url}",
+            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS),
+            **kwargs
+        )
 
     def create_post(self):
+        media_id = self.create_media()  # Create media for this post
         categories = self.instance.category.all()
-
         payload_data = dict(
             title=self.instance.news_title,
             content=self.instance.news_main,
@@ -55,29 +64,42 @@ class WordPressHandler:
             password='',
             format='standard',
             categories=[cat.word_press_id for cat in categories],
+            media_urls=[self.instance.get_image_url()],
+            featured_media=media_id,
 
-            media_urls=[self.instance.news_image],
             # tags= , (list|int)
             # date=self.instance.created_time.__str__(),
             # terms=''
             # parent=''  # The post ID of the new post's parent.
         )
-        req = self.post_request(
-            self.urls['post'], json=payload_data,
-            headers={'Content-Type': 'application/json'},
-            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
-        )
+        req = self.post_request(self.urls['post'], json=payload_data, headers={'Content-Type': 'application/json'})
         if req.ok:
             self.instance.wp_post_id = req.json()['id']
             self.instance.save()
 
+    def create_media(self):
+        file_name = self.instance.news_image.name.split('/')[-1]
+        payload_data = dict(
+            status='draft',
+            alt_text=self.instance.get_image_url(),
+        )
+        req = self.post_request(
+            self.urls['media'],
+            data={'file': file_name, 'data': json.dumps(payload_data)},
+            files={'file': (
+                file_name,
+                open(self.instance.news_image.path, 'rb'),
+                f'image/{file_name.split(".")[-1]}',
+                {'Expires': '0'}
+            )},
+        )
+        if req.ok:
+            return req.json()['id']
+
     def update_news_from_post(self):
         from .models import News
-        req = self.post_request(
-            f"{self.urls['post'] + self.instance.wp_post_id}",
-            headers={'Content-Type': 'application/json'},
-            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS)
-        )
+        req = self.post_request(f"{self.urls['post'] + self.instance.wp_post_id}",
+                                headers={'Content-Type': 'application/json'})
         if req.ok:
             changes = 0
             for s in difflib.ndiff(self.instance.news_main, req.json()['content']['raw']):
@@ -111,4 +133,3 @@ class UploadTo:
 
     def deconstruct(self):
         return 'apps.news.utils.UploadTo', [self.name], {}
-

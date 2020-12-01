@@ -26,4 +26,7 @@ CELERY_VHOST = ''
 WP_USER = ''
 WP_PASS = ''
 
+# https://example.ir
+BASE_URL = 
+
 ```

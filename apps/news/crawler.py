@@ -350,7 +350,7 @@ class ENTEKHABCrawler(Crawler):
                     news_image = soup.find("img", class_="news_corner_image").attrs["src"]
                 news_image = self.download_image(f"https://www.entekhab.ir{news_image}")
 
-                news, _created = News.objects.update_or_create(
+                news, _created = News.objects.get_or_create(
                     news_site_id=news_site_id,
                     defaults={
                         'direct_link': url,

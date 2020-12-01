@@ -155,3 +155,4 @@ CELERY_BROKER_URL = 'amqp://%(USER)s:%(PASS)s@%(HOST)s' % {
 WP_USER = config('WP_USER')
 WP_PASS = config('WP_PASS')
 
+BASE_URL = config('BASE_URL')

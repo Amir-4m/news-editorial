@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 from .utils import UploadTo
 
@@ -70,6 +71,10 @@ class News(models.Model):
 
     def __str__(self):
         return self.news_title
+
+    def get_image_url(self):
+        if self.news_image:
+            return settings.BASE_URL + self.news_image.url
 
 
 class Category(models.Model):
