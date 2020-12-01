@@ -3,7 +3,8 @@ import pytz
 from datetime import datetime
 
 from django.conf import settings
-from django.utils import timezone
+from django.core.files import File
+from django.core.files.temp import NamedTemporaryFile
 
 import requests
 from bs4 import BeautifulSoup
@@ -53,6 +54,20 @@ class Crawler:
             category_id=category_id,
             news_agency=self.news_agency
         ).values_list('site_category_name', flat=True)
+
+    def download_image(self, url):
+        """
+        Args:
+            url: url of news image that takes from page
+            defaults: data for create a new field
+
+        Returns: Image <django.core.files.File> to save in ImageField <news_image>
+        """
+        r = requests.get(url, allow_redirects=False)
+        img_temp = NamedTemporaryFile(delete=True)
+        img_temp.write(r.content)
+        img_temp.flush()  # deleting the file from RAM
+        return File(img_temp, name=url.split('/')[-1])
 
 
 class ILNACrawler(Crawler):
@@ -110,32 +125,38 @@ class ILNACrawler(Crawler):
                     news_category_id = category_id
 
                 news_title = soup.find("h1", class_="fb fn22 news_title mt8 mb8").get_text().strip()
-
                 news_summary = soup.find("p", class_="fn14 news_lead pr8 pl8 pt8 pb8").text
-
-                news_main_soup = soup.find("section", class_="article_body mt16 clearbox fn14 content").find_all(
-                    "p")
+                news_main_soup = soup.find("section", class_="article_body mt16 clearbox fn14 content").find_all("p")
                 news_main = str()
 
                 for i in range(1, len(news_main_soup)):
                     news_main_soup[i] = str(news_main_soup[i])
                     news_main += news_main_soup[i]
 
-                news_image = soup.find(
-                    "section", class_="article_body mt16 clearbox fn14 content"
-                ).find("img").attrs["src"]
+                # final data to save
+                defaults = {
+                    'direct_link': url,
+                    "news_category": news_category,
+                    "news_title": news_title,
+                    "news_site": "ilna.news",
+                    "news_main": news_main,
+                    "news_main_editable": news_main,
+                    "news_summary": news_summary,
+                    "news_date": news_date,
+                    # download news image
+                    "news_image": self.download_image(
+                        # image URL
+                        soup.find(
+                            "section", class_="article_body mt16 clearbox fn14 content"
+                        ).find("img").attrs["src"])
+                }
 
-                news, _created = News.objects.get_or_create(news_site_id=news_site_id,
-                                                            defaults={"news_category": news_category,
-                                                                      "news_title": news_title,
-                                                                      "news_site": "ilna.news",
-                                                                      "news_main": news_main,
-                                                                      "news_main_editable": news_main,
-                                                                      "news_summary": news_summary,
-                                                                      "news_date": news_date,
-                                                                      "news_image": news_image})
+                # creating news ...
+                news, _created = News.objects.get_or_create(news_site_id=news_site_id, defaults=defaults)
+                # adding the categories of news
                 if news_category_id:
                     news.category.add(news_category_id)
+                # success log
                 if _created:
                     logging.info(f"New news created!, id = {news_site_id}, website = ilna.news")
                 else:
@@ -220,18 +241,22 @@ class ISNACrawler(Crawler):
 
                 news_summary = soup.find(class_="summary").text
 
-                news_image = soup.find(class_="item-img img-md").find("img").attrs["src"]
+                news_image = self.download_image(soup.find(class_="item-img img-md").find("img").attrs["src"])
 
-                news, _created = News.objects.get_or_create(news_site_id=news_site_id,
-                                                            defaults={"news_category": news_category,
-                                                                      "news_title": news_title,
-                                                                      "news_site": "isna.ir",
-                                                                      "news_main": "".join(news_main_text),
-                                                                      "news_main_editable": "".join(
-                                                                          news_main_text),
-                                                                      "news_summary": news_summary,
-                                                                      "news_date": news_date,
-                                                                      "news_image": news_image})
+                news, _created = News.objects.get_or_create(
+                    news_site_id=news_site_id,
+                    defaults={
+                        'direct_link': url,
+                        "news_category": news_category,
+                        "news_title": news_title,
+                        "news_site": "isna.ir",
+                        "news_main": "".join(news_main_text),
+                        "news_main_editable": "".join(news_main_text),
+                        "news_summary": news_summary,
+                        "news_date": news_date,
+                        "news_image": news_image
+                    }
+                )
                 if news_category_id:
                     news.category.add(news_category_id)
                 if _created:
@@ -318,21 +343,27 @@ class ENTEKHABCrawler(Crawler):
                 )
 
                 news_image = soup.find("img", class_="image_btn")
+
                 if news_image:
                     news_image = news_image.attrs["src"]
                 else:
                     news_image = soup.find("img", class_="news_corner_image").attrs["src"]
+                news_image = self.download_image(f"https://www.entekhab.ir{news_image}")
 
-                news_image = f"https://www.entekhab.ir{news_image}"
-                news, _created = News.objects.update_or_create(news_site_id=news_site_id,
-                                                               defaults={"news_category": news_category,
-                                                                         "news_title": news_title,
-                                                                         "news_site": "entekhab.ir",
-                                                                         "news_main": news_main,
-                                                                         "news_main_editable": news_main,
-                                                                         "news_summary": news_summary,
-                                                                         "news_date": news_date,
-                                                                         "news_image": news_image, })
+                news, _created = News.objects.get_or_create(
+                    news_site_id=news_site_id,
+                    defaults={
+                        'direct_link': url,
+                        "news_category": news_category,
+                        "news_title": news_title,
+                        "news_site": "entekhab.ir",
+                        "news_main": news_main,
+                        "news_main_editable": news_main,
+                        "news_summary": news_summary,
+                        "news_date": news_date,
+                        "news_image": news_image,
+                    }
+                )
                 for category in chapar_category:
                     news.category.add(category)
                 logging.info(f"news created!, id = {news_site_id}, website = entekhab.ir")

@@ -1,10 +1,9 @@
 from django.db import models
-# from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
-# from django_better_admin_arrayfield.models.fields import ArrayField
-from django.contrib.postgres.fields import ArrayField
+from .utils import UploadTo
 
 
 class News(models.Model):
@@ -52,7 +51,8 @@ class News(models.Model):
 
     news_date = models.DateTimeField(_("news Date"))
 
-    news_image = models.URLField(_("news image"), max_length=1000)
+    news_image = models.ImageField(_("news image"), upload_to=UploadTo('news_image'), blank=True)
+
     priority = models.CharField(_("priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
     status = models.CharField(_("status"), choices=STATUS, default=STATUS_VOID, max_length=100)
     number_of_changes = models.PositiveIntegerField(_("number of changes after editing"), null=True, blank=True)
@@ -63,6 +63,7 @@ class News(models.Model):
     category = models.ManyToManyField("Category", verbose_name=_("chapar category"), related_name="news", blank=True)
 
     wp_post_id = models.CharField(_('wordpress post id'), max_length=30, blank=True)
+    direct_link = models.CharField(_('direct link'), max_length=1000, blank=True)
 
     class Meta:
         verbose_name = _('news')
