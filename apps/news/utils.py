@@ -64,9 +64,9 @@ class WordPressHandler:
             password='',
             format='standard',
             categories=[cat.word_press_id for cat in categories],
-            media_urls=[self.instance.get_image_url()],
             featured_media=media_id,
 
+            # media_urls=[self.instance.],
             # tags= , (list|int)
             # date=self.instance.created_time.__str__(),
             # terms=''
@@ -79,10 +79,7 @@ class WordPressHandler:
 
     def create_media(self):
         file_name = self.instance.news_image.name.split('/')[-1]
-        payload_data = dict(
-            status='draft',
-            alt_text=self.instance.get_image_url(),
-        )
+        payload_data = dict(status='draft')
         req = self.post_request(
             self.urls['media'],
             data={'file': file_name, 'data': json.dumps(payload_data)},

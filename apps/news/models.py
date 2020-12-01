@@ -72,10 +72,6 @@ class News(models.Model):
     def __str__(self):
         return self.news_title
 
-    def get_image_url(self):
-        if self.news_image:
-            return settings.BASE_URL + self.news_image.url
-
 
 class Category(models.Model):
     created_time = models.DateTimeField(_('created time'), auto_now_add=True)
