@@ -56,7 +56,7 @@ class NewsAdmin(admin.ModelAdmin):
             self.readonly_fields = (
                 "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
                 'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
-                "status", "priority", 'comment',
+                "status", "priority", 'category', 'news_date'
             )
         # Monitors
         elif 'monitoring' in user_groups:
@@ -84,6 +84,7 @@ class NewsAdmin(admin.ModelAdmin):
                 "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
                 "news_date"
             )
+            self.list_filter = ("news_site", "news_date", 'priority', "category", "news_category")
             self.list_filter = ("news_site", "news_date", "priority")
             self.actions = []
         # Monitors
@@ -91,7 +92,7 @@ class NewsAdmin(admin.ModelAdmin):
             self.list_display = (
                 "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
             )
-            self.list_filter = ("news_site", "news_date", "category",)
+            self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
             self.actions = ["junk_status", "editable_status"]
             self.search_fields = ("news_category",)
         # Superuser, Chief
