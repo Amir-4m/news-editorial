@@ -85,7 +85,6 @@ class NewsAdmin(admin.ModelAdmin):
                 "news_date"
             )
             self.list_filter = ("news_site", "news_date", 'priority', "category", "news_category")
-            self.list_filter = ("news_site", "news_date", "priority")
             self.actions = []
         # Monitors
         elif 'monitoring' in user_groups:
