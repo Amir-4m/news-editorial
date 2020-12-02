@@ -49,11 +49,12 @@ class Crawler:
     def collect_news(self):
         raise NotImplementedError()
 
-    def get_categories_name(self, category_id):
-        return NewsSiteCategory.objects.filter(
-            category_id=category_id,
-            news_agency=self.news_agency
-        ).values_list('site_category_name', flat=True)
+    def get_categories_name(self):
+        return [
+            cat.strip() for cat in NewsSiteCategory.objects.filter(
+                news_agency=self.news_agency
+            ).values_list('site_category_name', flat=True)
+        ]
 
     def download_image(self, url):
         """
@@ -98,6 +99,7 @@ class ILNACrawler(Crawler):
 
     def collect_news(self):
         urls = self.collect_links()
+        defined_categories = self.get_categories_name()
         for url, category_id in urls:
             try:
                 page = requests.get(url, allow_redirects=False)
@@ -118,11 +120,6 @@ class ILNACrawler(Crawler):
                 )
 
                 news_category = soup.find_all("a", class_="float ml4 mr4")[-1].get_text()
-                ilna_agency_categories = self.get_categories_name(category_id)
-
-                news_category_id = None
-                if news_category in ilna_agency_categories:
-                    news_category_id = category_id
 
                 news_title = soup.find("h1", class_="fb fn22 news_title mt8 mb8").get_text().strip()
                 news_summary = soup.find("p", class_="fn14 news_lead pr8 pl8 pt8 pb8").text
@@ -154,8 +151,8 @@ class ILNACrawler(Crawler):
                 # creating news ...
                 news, _created = News.objects.get_or_create(news_site_id=news_site_id, defaults=defaults)
                 # adding the categories of news
-                if news_category_id:
-                    news.category.add(news_category_id)
+                if news_category in defined_categories:
+                    news.category.add(category_id)
                 # success log
                 if _created:
                     logging.info(f"New news created!, id = {news_site_id}, website = ilna.news")
@@ -202,6 +199,7 @@ class ISNACrawler(Crawler):
 
     def collect_news(self):
         urls = self.collect_links()
+        defined_categories = self.get_categories_name()
         for url, category_id in urls:
             page = requests.get(url, allow_redirects=False)
             soup = BeautifulSoup(page.text, 'html.parser')
@@ -223,14 +221,7 @@ class ISNACrawler(Crawler):
                 ).todatetime()
 
                 news_category = soup.find_all(class_="text-meta")[1].get_text().strip()
-                isna_agency_categories = self.get_categories_name(category_id)
-
-                news_category_id = None
-                if news_category in isna_agency_categories:
-                    news_category_id = category_id
-
                 news_site_id = url.split("/")[4]
-
                 news_title = soup.find('h1', class_="first-title").get_text()
 
                 news_main_text = (soup.find(class_="item-text"))
@@ -241,6 +232,7 @@ class ISNACrawler(Crawler):
 
                 news_summary = soup.find(class_="summary").text
 
+                # downloading news image
                 news_image = self.download_image(soup.find(class_="item-img img-md").find("img").attrs["src"])
 
                 news, _created = News.objects.get_or_create(
@@ -257,8 +249,9 @@ class ISNACrawler(Crawler):
                         "news_image": news_image
                     }
                 )
-                if news_category_id:
-                    news.category.add(news_category_id)
+                if news_category in defined_categories:
+                    news.category.add(category_id)
+
                 if _created:
                     logging.info(f"News created!, id = {news_site_id}, website = isna.ir")
                 else:
@@ -293,6 +286,7 @@ class ENTEKHABCrawler(Crawler):
 
     def collect_news(self):
         urls = self.collect_links()
+        defined_categories = self.get_categories_name()
         for url, category_id in urls:
             try:
                 page = requests.get(url, allow_redirects=False)
@@ -308,16 +302,8 @@ class ENTEKHABCrawler(Crawler):
                     news_category.append(a.get_text().strip())
 
                 news_category = news_category[0]
-                entekhab_agency_categories = self.get_categories_name(category_id)
-
-                chapar_category = list()
-                if news_category in entekhab_agency_categories:
-                    chapar_category.append(category_id)
-
                 news_title = soup.find("h1", class_="title col-xs-36").get_text().strip()
-
                 news_summary = soup.find('div', class_="subtitle").text
-
                 news_main = soup.find(class_="body col-xs-36").find_all(['a', 'p'])
 
                 for i in range(len(news_main)):
@@ -364,8 +350,8 @@ class ENTEKHABCrawler(Crawler):
                         "news_image": news_image,
                     }
                 )
-                for category in chapar_category:
-                    news.category.add(category)
+                if news_category in defined_categories:
+                    news.category.add(category_id)
                 logging.info(f"news created!, id = {news_site_id}, website = entekhab.ir")
             except Exception as e:
                 logging.error(f"collect links error >>> {e.args}, url: {url}")
