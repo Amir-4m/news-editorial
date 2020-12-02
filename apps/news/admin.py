@@ -91,7 +91,7 @@ class NewsAdmin(admin.ModelAdmin):
             self.list_display = (
                 "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
             )
-            self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
+            self.list_filter = ("news_site", "news_date", 'priority', "category", "news_category")
             self.actions = ["junk_status", "editable_status"]
             self.search_fields = ("news_category",)
         # Superuser, Chief

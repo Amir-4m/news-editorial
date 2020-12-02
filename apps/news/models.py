@@ -51,7 +51,7 @@ class News(models.Model):
 
     news_date = models.DateTimeField(_("news Date"))
 
-    # news_image = models.ImageField(_("news image"), upload_to=UploadTo('news_image'), blank=True)
+    news_image = models.ImageField(_("news image"), upload_to=UploadTo('news_image'), blank=True)
 
     priority = models.CharField(_("priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
     status = models.CharField(_("status"), choices=STATUS, default=STATUS_VOID, max_length=100)
