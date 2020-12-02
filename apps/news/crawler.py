@@ -235,7 +235,7 @@ class ISNACrawler(Crawler):
                 # downloading news image
                 news_image = self.download_image(soup.find(class_="item-img img-md").find("img").attrs["src"])
 
-                news, _created = News.objects.update_or_create(
+                news, _created = News.objects.get_or_create(
                     news_site_id=news_site_id,
                     defaults={
                         'direct_link': url,
