@@ -18,8 +18,9 @@ from .tasks import collect_news_task
 
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
-    form = NewsForm
+    form = NewsForm  # TODO news main from json field to add rtl attr
     radio_fields = {"status": admin.HORIZONTAL, "priority": admin.HORIZONTAL}
+    search_fields = ('news_site_id',)
     fieldsets = (
         ('News', {'fields': (
             "news_title", 'get_current_news_title', "news_summary", 'get_current_news_summary',
@@ -48,62 +49,78 @@ class NewsAdmin(admin.ModelAdmin):
 
         return News.objects.filter(editor=request.user).filter(status__in=["assigned", "rejected"])
 
+    def get_readonly_fields(self, request, obj=None):
+        user_groups = [g.name for g in request.user.groups.all()]
+        # editor
+        if 'editors' in user_groups:
+            return (
+                "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
+                'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
+                "status", "priority", 'category', 'news_date'
+            )
+        # monitor
+        elif 'monitoring' in user_groups:
+            return (
+                "news_date", 'news_title', "news_summary", "priority", "status", "category", "news_site",
+                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
+                'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link'
+            )
+        # superuser, chief
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return (
+                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
+                'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes'
+            )
+
+    def get_list_display(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'editors' in user_groups:
+            return (
+                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
+                "news_date"
+            )
+        elif 'monitoring' in user_groups:
+            return (
+                "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
+            )
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return (
+                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
+                "news_date", "editor", "news_site_id"
+            )
+
+    def get_list_filter(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'editors' in user_groups:
+            return "news_site", "news_date", 'priority', "category", "news_category"
+        elif 'monitoring' in user_groups:
+            return "news_site", "news_date", 'priority', "category", "news_category"
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return "news_site", "news_date", 'priority', "editor", "status", "category", "news_category"
+
+    def get_actions(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'editors' in user_groups:
+            self.actions = []
+        elif 'monitoring' in user_groups:
+            self.actions = ["junk_status", "editable_status"]
+        elif request.user.is_superuser or 'chief' in user_groups:
+            self.actions = ["assign_editor", "assign_category", 'junk_status']
+        return super().get_actions(request)
+
     def change_view(self, request, object_id, form_url='', extra_context=None):
         user_groups = [g.name for g in request.user.groups.all()]
         # Editors
         if 'editors' in user_groups:
             self.change_form_template = "edit_form.html"
-            self.readonly_fields = (
-                "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
-                'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
-                "status", "priority", 'category', 'news_date'
-            )
         # Monitors
         elif 'monitoring' in user_groups:
             self.change_form_template = 'admin/change_form.html'
-            self.readonly_fields = (
-                "news_date", 'news_title', "news_summary", "priority", "status", "category", "news_site",
-                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
-                'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link'
-            )
         # Superuser, Chief
         elif request.user.is_superuser or 'chief' in user_groups:
             self.change_form_template = 'admin/change_form.html'
-            self.readonly_fields = (
-                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
-                'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes'
-            )
 
         return super().change_view(request, object_id, form_url, extra_context)
-
-    def changelist_view(self, request, extra_context=None):
-        user_groups = [g.name for g in request.user.groups.all()]
-        # Editors
-        if 'editors' in user_groups:
-            self.list_display = (
-                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
-                "news_date"
-            )
-            self.list_filter = ("news_site", "news_date", 'priority', "category", "news_category")
-            self.actions = []
-        # Monitors
-        elif 'monitoring' in user_groups:
-            self.list_display = (
-                "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
-            )
-            self.list_filter = ("news_site", "news_date", 'priority', "category", "news_category")
-            self.actions = ["junk_status", "editable_status"]
-            self.search_fields = ("news_category",)
-        # Superuser, Chief
-        elif request.user.is_superuser or 'chief' in user_groups:
-            self.search_fields = ('news_site_id',)
-            self.list_display = (
-                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
-                "news_date", "editor", "news_site_id"
-            )
-            self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
-            self.actions = ["assign_editor", "assign_category", 'junk_status']
-        return super().changelist_view(request, extra_context)
 
     def chapar_category(self, obj):
         return "\n".join([c.title for c in obj.category.all()])
@@ -120,7 +137,7 @@ class NewsAdmin(admin.ModelAdmin):
                 instance.status = "edited"
 
                 changes = 0
-                for s in difflib.ndiff(instance.news_main, instance.news_main_editable):
+                for s in difflib.ndiff(instance.news_data.get('org_news_main'), instance.news_main_editable):
                     if s[0] == "+" or s[0] == "-":
                         changes += 1
 
@@ -197,16 +214,20 @@ class NewsAdmin(admin.ModelAdmin):
 
     # Custom Fields
     def get_news_main_content(self, obj):
-        return mark_safe(obj.news_main)
+        return mark_safe(f"""<div dir="rtl">{obj.news_data.get('org_news_main')}</div>""")
     get_news_main_content.short_description = _('news main')
 
     def get_current_news_summary(self, obj):
-        return mark_safe(f"<small>{obj.news_summary}</small>")
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_summary')}</p>")
     get_current_news_summary.short_description = _('current news summary')
 
     def get_current_news_title(self, obj):
-        return mark_safe(f"<small>{obj.news_title}</small>")
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_title')}</p>")
     get_current_news_title.short_description = _('current title')
+
+    def get_current_image(self, obj):
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_image')}</p>")
+    get_current_image.short_description = _('current image')
 
     def get_direct_link(self, obj):
         return mark_safe(f"<a href={obj.direct_link} target='blank'>Link</a>")

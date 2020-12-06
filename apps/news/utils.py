@@ -55,9 +55,10 @@ class WordPressHandler:
         categories = self.instance.category.all()
         payload_data = dict(
             title=self.instance.news_title,
-            content=self.instance.news_main,
+            content=self.instance.news_main_editable,
             slug=self.instance.news_title,
-            author=9,
+            excerpt=self.instance.news_summary,
+            author=9,  # TODO add this -> self.instance.editor.id,
             publicize=False,  # True or false if the post be publicized to external services.
             status='draft',  # publish, private, draft, pending, future, auto-draft
             sticky=False,  # False: (default) Post is not marked as sticky.
@@ -65,12 +66,6 @@ class WordPressHandler:
             format='standard',
             categories=[cat.word_press_id for cat in categories],
             featured_media=media_id,
-
-            # media_urls=[self.instance.],
-            # tags= , (list|int)
-            # date=self.instance.created_time.__str__(),
-            # terms=''
-            # parent=''  # The post ID of the new post's parent.
         )
         req = self.post_request(self.urls['post'], json=payload_data, headers={'Content-Type': 'application/json'})
         if req.ok:

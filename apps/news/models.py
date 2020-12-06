@@ -1,7 +1,8 @@
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
-from django.conf import settings
+
 
 from .utils import UploadTo
 
@@ -40,17 +41,18 @@ class News(models.Model):
     created_time = models.DateTimeField(_('created time'), auto_now_add=True)
     updated_time = models.DateTimeField(_('updated time'), auto_now=True)
 
+    news_data = JSONField(_('news data'), default=dict)
+    # news_main = models.TextField(_("news main content"), editable=False)
+
     news_title = models.CharField(_("title"), max_length=1500)
     news_site = models.CharField(_("news site"), max_length=50)
     news_category = models.CharField(_("category"), max_length=50)
     news_site_id = models.BigIntegerField(_("site id"))
     news_summary = models.TextField(_("news summary"))
-    news_main = models.TextField(_("news main content"), editable=False)
     news_main_editable = models.TextField(_("news main editable"))
     comment = models.TextField(_("Editorial Chief Comment"), null=True, blank=True)
 
     news_date = models.DateTimeField(_("news Date"))
-
     news_image = models.ImageField(_("news image"), upload_to=UploadTo('news_image'), blank=True)
 
     priority = models.CharField(_("priority"), choices=PRIORITY, default=PRIORITY_MEDIUM, max_length=100)
@@ -63,7 +65,7 @@ class News(models.Model):
     category = models.ManyToManyField("Category", verbose_name=_("chapar category"), related_name="news", blank=True)
 
     wp_post_id = models.CharField(_('wordpress post id'), max_length=30, blank=True)
-    direct_link = models.CharField(_('direct link'), max_length=1000, blank=True)
+    direct_link = models.CharField(_('direct link'), max_length=2000, blank=True)
 
     class Meta:
         verbose_name = _('news')
