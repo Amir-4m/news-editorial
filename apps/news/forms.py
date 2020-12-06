@@ -18,6 +18,8 @@ class AssignCategory(forms.Form):
 
 
 class NewsForm(forms.ModelForm):
+    news_title = forms.CharField(widget=forms.TextInput(attrs={'dir': 'rtl', 'size': 120}))
+    news_summary = forms.CharField(widget=forms.Textarea(attrs={'dir': 'rtl'}))
     news_main_editable = forms.CharField(widget=CKEditorWidget())
 
     class Meta:

@@ -32,6 +32,7 @@ class Crawler:
             # self.urls = [{ 'news_url': '<url>', 'category_id': 1 }, ...]
             # this value is just use in collect_links() method.
             self.urls = NewsSiteCategory.objects.filter(
+                # site_category_name__in=['همدان', 'قم'],
                 news_agency=self.news_agency
             ).values('news_url', 'category_id')
 
@@ -130,22 +131,28 @@ class ILNACrawler(Crawler):
                     news_main_soup[i] = str(news_main_soup[i])
                     news_main += news_main_soup[i]
 
+                image_url = soup.find(
+                    "section", class_="article_body mt16 clearbox fn14 content"
+                ).find("img").attrs["src"]
+
                 # final data to save
                 defaults = {
                     'direct_link': url,
                     "news_category": news_category,
                     "news_title": news_title,
                     "news_site": "ilna.news",
-                    "news_main": news_main,
                     "news_main_editable": news_main,
                     "news_summary": news_summary,
                     "news_date": news_date,
                     # download news image
-                    "news_image": self.download_image(
-                        # image URL
-                        soup.find(
-                            "section", class_="article_body mt16 clearbox fn14 content"
-                        ).find("img").attrs["src"])
+                    "news_image": self.download_image(image_url),
+                    # Raw data of news
+                    "news_data": dict(
+                        org_news_image=image_url,
+                        org_news_title=news_title,
+                        org_news_main=news_main,
+                        org_news_summary=news_summary,
+                    )
                 }
 
                 # creating news ...
@@ -171,28 +178,32 @@ class ISNACrawler(Crawler):
         for url in self.urls:
             page = requests.get(url['news_url'], allow_redirects=False)
             soup = BeautifulSoup(page.text, 'html.parser')
-            news_list_1 = soup.find('section', attrs={'id': 'box9',
-                                                      'class': "box card no-header horizontal full-card _cyan has-more has-more-bottom has-more-default has-more-centered"})
+
+            # style 1
+            news_list_1 = soup.find('section', attrs={'class': "box card no-header horizontal full-card _cyan has-more has-more-bottom has-more-default has-more-centered"})
             try:
                 all_a = news_list_1.find_all("a")
             except Exception as e:
                 logging.error(f"-- 1 collect links error >>> {e.args}, url: {url.get('news_url')}, {self.website_name}")
+
             try:
                 for a in all_a:
                     if a.find("img"):
                         news_links.append((f"https://www.isna.ir{a.attrs['href']}", url['category_id']))
             except Exception as e:
                 logging.error(f"2 collect links error >>> {e.args}, url: {url}")
+
+            # style 2
             try:
                 news_list_2 = soup.find(
-                    class_="box card no-header horizontal full-card _cyan has-more has-more-bottom has-more-default has-more-centered")
+                    class_="box card no-header cols cols-3 cols-equal has-more _purple")
                 links = news_list_2.find_all("li")
-
                 for link in links:
                     anchor = link.find("a").attrs['href']
                     news_links.append((f"https://www.isna.ir{anchor}", url['category_id']))
             except Exception as e:
-                logging.error(f"3 collect links error >>> {e.args}, url: {url}")
+                logging.error(f"-- 2 collect links error >>> {e.args}, url: {url}")
+
         result = list(set(news_links))
         logging.debug(f"urls found {result}")
         return result
@@ -232,8 +243,9 @@ class ISNACrawler(Crawler):
 
                 news_summary = soup.find(class_="summary").text
 
+                image_url = soup.find(class_="item-img img-md").find("img").attrs["src"]
                 # downloading news image
-                news_image = self.download_image(soup.find(class_="item-img img-md").find("img").attrs["src"])
+                news_image = self.download_image(image_url)
 
                 news, _created = News.objects.get_or_create(
                     news_site_id=news_site_id,
@@ -242,11 +254,17 @@ class ISNACrawler(Crawler):
                         "news_category": news_category,
                         "news_title": news_title,
                         "news_site": "isna.ir",
-                        "news_main": "".join(news_main_text),
                         "news_main_editable": "".join(news_main_text),
                         "news_summary": news_summary,
                         "news_date": news_date,
-                        "news_image": news_image
+                        "news_image": news_image,
+                        # Raw data of news
+                        "news_data": dict(
+                            org_news_image=image_url,
+                            org_news_title=news_title,
+                            org_news_main="".join(news_main_text),
+                            org_news_summary=news_summary,
+                        )
                     }
                 )
                 if news_category in defined_categories:
@@ -327,14 +345,14 @@ class ENTEKHABCrawler(Crawler):
                     int(news_time[0]),
                     tzinfo=pytz.timezone(settings.TIME_ZONE)
                 )
-
                 news_image = soup.find("img", class_="image_btn")
 
                 if news_image:
                     news_image = news_image.attrs["src"]
                 else:
                     news_image = soup.find("img", class_="news_corner_image").attrs["src"]
-                news_image = self.download_image(f"https://www.entekhab.ir{news_image}")
+                image_url = f"https://www.entekhab.ir{news_image}"
+                news_image = self.download_image(image_url)
 
                 news, _created = News.objects.get_or_create(
                     news_site_id=news_site_id,
@@ -348,6 +366,13 @@ class ENTEKHABCrawler(Crawler):
                         "news_summary": news_summary,
                         "news_date": news_date,
                         "news_image": news_image,
+                        # Raw data of news
+                        "news_data": dict(
+                            org_news_image=image_url,
+                            org_news_title=news_title,
+                            org_news_main=news_main,
+                            org_news_summary=news_summary,
+                        )
                     }
                 )
                 if news_category in defined_categories:
