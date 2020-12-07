@@ -58,7 +58,7 @@ class WordPressHandler:
             content=self.instance.news_main_editable,
             slug=self.instance.news_title,
             excerpt=self.instance.news_summary,
-            author=9,  # TODO add this -> self.instance.editor.id,
+            author=getattr(self.instance, 'editor_id', 9),
             publicize=False,  # True or false if the post be publicized to external services.
             status='draft',  # publish, private, draft, pending, future, auto-draft
             sticky=False,  # False: (default) Post is not marked as sticky.

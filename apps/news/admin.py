@@ -18,9 +18,9 @@ from .tasks import collect_news_task
 
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
-    form = NewsForm  # TODO news main from json field to add rtl attr
+    form = NewsForm
     radio_fields = {"status": admin.HORIZONTAL, "priority": admin.HORIZONTAL}
-    search_fields = ('news_site_id',)
+    search_fields = ('news_site_id', 'news_title', 'news_summary')
     fieldsets = (
         ('News', {'fields': (
             "news_title", 'get_current_news_title', "news_summary", 'get_current_news_summary',

@@ -71,6 +71,10 @@ class News(models.Model):
         verbose_name = _('news')
         verbose_name_plural = _("news")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._b_status = self.status
+
     def __str__(self):
         return self.news_title
 
