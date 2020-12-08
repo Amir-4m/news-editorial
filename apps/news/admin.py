@@ -51,15 +51,8 @@ class NewsAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         user_groups = [g.name for g in request.user.groups.all()]
-        # editor
-        if 'editors' in user_groups:
-            return (
-                "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
-                'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
-                "status", "priority", 'category', 'news_date'
-            )
         # monitor
-        elif 'monitoring' in user_groups:
+        if 'monitoring' in user_groups:
             return (
                 "news_date", 'news_title', "news_summary", "priority", "status", "category", "news_site",
                 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
@@ -71,15 +64,16 @@ class NewsAdmin(admin.ModelAdmin):
                 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
                 'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes'
             )
+        # editor
+        return (
+            "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
+            'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
+            "status", "priority", 'category', 'news_date'
+        )
 
     def get_list_display(self, request):
         user_groups = [g.name for g in request.user.groups.all()]
-        if 'editors' in user_groups:
-            return (
-                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
-                "news_date"
-            )
-        elif 'monitoring' in user_groups:
+        if 'monitoring' in user_groups:
             return (
                 "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
             )
@@ -88,15 +82,20 @@ class NewsAdmin(admin.ModelAdmin):
                 "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
                 "news_date", "editor", "news_site_id"
             )
+        # editor
+        return (
+            "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
+            "news_date"
+        )
 
     def get_list_filter(self, request):
         user_groups = [g.name for g in request.user.groups.all()]
-        if 'editors' in user_groups:
-            return "news_site", "news_date", 'priority', "category", "news_category"
-        elif 'monitoring' in user_groups:
+        if 'monitoring' in user_groups:
             return "news_site", "news_date", 'priority', "category", "news_category"
         elif request.user.is_superuser or 'chief' in user_groups:
             return "news_site", "news_date", 'priority', "editor", "status", "category", "news_category"
+        # editor
+        return "news_site", "news_date", 'priority', "category", "news_category"
 
     def get_actions(self, request):
         user_groups = [g.name for g in request.user.groups.all()]

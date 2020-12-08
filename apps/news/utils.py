@@ -51,6 +51,10 @@ class WordPressHandler:
         )
 
     def create_post(self):
+        """
+        Create a new Post to Wordpress from News object.
+        Returns: None
+        """
         media_id = self.create_media()  # Create media for this post
         categories = self.instance.category.all()
         payload_data = dict(
@@ -69,10 +73,18 @@ class WordPressHandler:
         )
         req = self.post_request(self.urls['post'], json=payload_data, headers={'Content-Type': 'application/json'})
         if req.ok:
+            from apps.news.models import News
+
             self.instance.wp_post_id = req.json()['id']
+            self.instance._b_status = News.STATUS_APPROVED
             self.instance.save()
 
     def create_media(self):
+        """
+        Create a new Media object in Wordpress site to assign it to Wordpress Post.
+
+        Returns: media's id of uploaded image to wordpress site
+        """
         file_name = self.instance.news_image.name.split('/')[-1]
         payload_data = dict(status='draft')
         req = self.post_request(
