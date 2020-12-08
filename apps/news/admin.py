@@ -38,13 +38,12 @@ class NewsAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        chief_group = User.objects.filter(groups__name="editors_chief")
-        monitoring_group = User.objects.filter(groups__name="monitoring")
+        user_groups = [g.name for g in request.user.groups.all()]
 
-        if request.user.is_superuser or request.user in chief_group:
+        if request.user.is_superuser or 'chief' in user_groups:
             return News.objects.all()
 
-        elif request.user in monitoring_group:
+        elif 'monitoring' in user_groups:
             return News.objects.filter(status__in=["void", "junk", "editable"])
 
         return News.objects.filter(editor=request.user).filter(status__in=["assigned", "rejected"])
