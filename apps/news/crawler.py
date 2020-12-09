@@ -151,7 +151,7 @@ class ILNACrawler(Crawler):
                 }
 
                 # creating news ...
-                news, _created = News.objects.update_or_create(news_site_id=news_site_id, defaults=defaults)
+                news, _created = News.objects.get_or_create(news_site_id=news_site_id, defaults=defaults)
                 # adding the categories of news
                 if news_category in defined_categories:
                     news.category.add(category_id)
