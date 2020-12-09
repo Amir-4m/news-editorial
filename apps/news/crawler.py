@@ -113,11 +113,7 @@ class ILNACrawler(Crawler):
                 sh_news_str_date = soup.find_all("time")[1].get_text().strip()
 
                 news_str_date = soup.find_all("time")[1].attrs['datetime']  # 2020-09-12T04:35:03Z
-                news_str_date = news_str_date.replace('T', ' ').replace('Z', '')
-
-                news_date = datetime.strptime(news_str_date, "%Y-%m-%d %H:%M:%S")
-                news_date = timezone('UTC').localize(news_date)
-                news_date = news_date.astimezone(timezone(settings.TIME_ZONE))
+                news_date = datetime.strptime(news_str_date, "%Y-%m-%dT%H:%M:%S%z")
 
                 news_category = soup.find_all("a", class_="float ml4 mr4")[-1].get_text()
                 news_title = soup.find("h1", class_="fb fn22 news_title mt8 mb8").get_text().strip()
