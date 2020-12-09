@@ -28,13 +28,13 @@ class NewsAdmin(admin.ModelAdmin):
         )}),
         (
             'News Data', {
-                'classes': ('collapse',), 'fields': ("priority", "status", "category", "news_date", "news_site")
+                'classes': ('collapse',), 'fields': (
+                    "priority", "status", "category", "news_date", 'get_org_news_date', "news_site", 'news_site_id',
+                )
             }
         ),
         ('News Editor', {'classes': ('collapse',), 'fields': ('number_of_changes', 'editor', 'comment',)}),
-        ('News Extra', {'classes': ('collapse',), 'fields': (
-            'news_site_id', 'wp_post_id', 'news_category', 'get_direct_link'
-        )})
+        ('News Extra', {'classes': ('collapse',), 'fields': ('wp_post_id', 'news_category', 'get_direct_link')})
     )
 
     def get_queryset(self, request):
@@ -55,19 +55,20 @@ class NewsAdmin(admin.ModelAdmin):
             return (
                 "news_date", 'news_title', "news_summary", "priority", "status", "category", "news_site",
                 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
-                'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link'
+                'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link', 'get_org_news_date'
             )
         # superuser, chief
         elif request.user.is_superuser or 'chief' in user_groups:
             return (
-                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
-                'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes'
+                "news_date", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
+                'news_site_id', 'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes',
+                'get_org_news_date'
             )
         # editor
         return (
             "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
             'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
-            "status", "priority", 'category', 'news_date'
+            "status", "priority", 'category', 'news_date', 'get_org_news_date'
         )
 
     def get_list_display(self, request):
@@ -211,6 +212,10 @@ class NewsAdmin(admin.ModelAdmin):
     editable_status.short_description = _("Change the Status to Editable")
 
     # Custom Fields
+    def get_org_news_date(self, obj):
+        return mark_safe(f"<p>{obj.news_data.get('org_news_date')}</p>")
+    get_org_news_date.short_description = _('original news date')
+
     def get_news_main_content(self, obj):
         return mark_safe(f"""<div dir="rtl">{obj.news_data.get('org_news_main')}</div>""")
     get_news_main_content.short_description = _('news main')
