@@ -12,7 +12,6 @@ import requests
 from bs4 import BeautifulSoup
 
 from .models import News, NewsAgency, NewsSiteCategory
-from .utils import number_converter
 
 
 jalali_months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
