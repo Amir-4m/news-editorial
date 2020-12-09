@@ -11,6 +11,13 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 
+maketrans = lambda A, B: dict((ord(a), b) for a, b in zip(A, B))
+number_converter = maketrans(
+    u'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹①②③④⑤⑥⑦⑧⑨⑴⑵⑶⑷⑸⑹⑺⑻⑼⒈⒉⒊⒋⒌⒍⒎⒏⒐',
+    u'0123456789012345678901234567890123456789123456789123456789123456789'
+)
+
+
 def CrawlerDynamically(class_name):
     """
     Args:

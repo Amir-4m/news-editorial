@@ -1,5 +1,7 @@
 import logging
-import pytz
+
+from khayyam import JalaliDatetime
+from pytz import timezone
 from datetime import datetime
 
 from django.conf import settings
@@ -8,9 +10,10 @@ from django.core.files.temp import NamedTemporaryFile
 
 import requests
 from bs4 import BeautifulSoup
-from khayyam import JalaliDatetime
 
 from .models import News, NewsAgency, NewsSiteCategory
+from .utils import number_converter
+
 
 jalali_months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 jalali_months_entekhab = ['فروردين', 'ارديبهشت', 'خرداد', 'تير', 'مرداد', 'شهريور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن',
@@ -107,21 +110,17 @@ class ILNACrawler(Crawler):
                 soup = BeautifulSoup(page.text, "html.parser")
 
                 news_site_id = int(soup.find(class_="inlineblock ml16").find("span").get_text())
-                news_str_date = soup.find_all("time")[1].attrs['datetime']
-                news_date = news_str_date.split('-')  # ['2020', '11', '17T06:36:55Z']
-                news_time = news_str_date.split(':')  # ['2020-11-17T06', '36', '55Z']
-                news_date = datetime(
-                    int(news_date[0]),  # year
-                    int(news_date[1]),  # month
-                    int(news_date[2][:2]),  # day -> '15T04:28:25Z'
-                    int(news_time[0][-2:]),  # hour '2020-11-01T12'
-                    int(news_time[1]),  # minute
-                    int(news_time[2][:2]),
-                    tzinfo=pytz.timezone(settings.TIME_ZONE)
-                )
+
+                sh_news_str_date = soup.find_all("time")[1].get_text().strip()
+
+                news_str_date = soup.find_all("time")[1].attrs['datetime']  # 2020-09-12T04:35:03Z
+                news_str_date = news_str_date.replace('T', ' ').replace('Z', '')
+
+                news_date = datetime.strptime(news_str_date, "%Y-%m-%d %H:%M:%S")
+                news_date = timezone('UTC').localize(news_date)
+                news_date = news_date.astimezone(timezone(settings.TIME_ZONE))
 
                 news_category = soup.find_all("a", class_="float ml4 mr4")[-1].get_text()
-
                 news_title = soup.find("h1", class_="fb fn22 news_title mt8 mb8").get_text().strip()
                 news_summary = soup.find("p", class_="fn14 news_lead pr8 pl8 pt8 pb8").text
                 news_main_soup = soup.find("section", class_="article_body mt16 clearbox fn14 content").find_all("p")
@@ -152,6 +151,7 @@ class ILNACrawler(Crawler):
                         org_news_title=news_title,
                         org_news_main=news_main,
                         org_news_summary=news_summary,
+                        org_news_date=sh_news_str_date
                     )
                 }
 
@@ -228,7 +228,7 @@ class ISNACrawler(Crawler):
                     int(jalali_date_details[0]),
                     int(jalali_time_details[0]),
                     int(jalali_time_details[1]),
-                    tzinfo=pytz.timezone(settings.TIME_ZONE)
+                    tzinfo=timezone(settings.TIME_ZONE)
                 ).todatetime()
 
                 news_category = soup.find_all(class_="text-meta")[1].get_text().strip()
@@ -264,6 +264,7 @@ class ISNACrawler(Crawler):
                             org_news_title=news_title,
                             org_news_main="".join(news_main_text),
                             org_news_summary=news_summary,
+                            org_news_date=news_jalali_date
                         )
                     }
                 )
@@ -337,14 +338,15 @@ class ENTEKHABCrawler(Crawler):
 
                 # time
                 news_time = news_jalali_date.split("-")[0].strip().split(' : ')
-                news_date = datetime(
+                news_date = JalaliDatetime(
                     news_date_year,
                     news_date_month,
                     news_date_day,
                     int(news_time[1]),
                     int(news_time[0]),
-                    tzinfo=pytz.timezone(settings.TIME_ZONE)
-                )
+                    tzinfo=timezone(settings.TIME_ZONE)
+                ).todatetime()
+
                 news_image = soup.find("img", class_="image_btn")
 
                 if news_image:
@@ -361,7 +363,6 @@ class ENTEKHABCrawler(Crawler):
                         "news_category": news_category,
                         "news_title": news_title,
                         "news_site": "entekhab.ir",
-                        "news_main": news_main,
                         "news_main_editable": news_main,
                         "news_summary": news_summary,
                         "news_date": news_date,
@@ -372,6 +373,7 @@ class ENTEKHABCrawler(Crawler):
                             org_news_title=news_title,
                             org_news_main=news_main,
                             org_news_summary=news_summary,
+                            org_news_date=news_jalali_date
                         )
                     }
                 )
