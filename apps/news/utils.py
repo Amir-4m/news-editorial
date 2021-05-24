@@ -3,12 +3,17 @@ import random
 import os
 import difflib
 from importlib import import_module
+import logging
 
 from django.conf import settings
 from django.utils import timezone
+from django.core.cache import cache
 
 import requests
 from requests.auth import HTTPBasicAuth
+
+
+logger = logging.getLogger(__file__)
 
 
 def CrawlerDynamically(class_name):
@@ -23,10 +28,13 @@ def CrawlerDynamically(class_name):
 
 
 class WordPressHandler:
-    base_url = 'https://www.chapar.news/wp-json/wp/v2/'
+    token_cache_key = 'wordpress_auth_token'
+    base_url = 'https://www.chapar.news/wp-json/'
     urls = {
-        'post': f'posts/',
-        'media': f'media/'
+        'token': 'jwt-auth/v1/token',
+        'validate-token': 'jwt-auth/v1/token/validate',
+        'post': f'wp/v2/posts/',
+        'media': f'wp/v2/media/'
     }
 
     def __init__(self, instance):
@@ -35,18 +43,51 @@ class WordPressHandler:
             instance: Instance is News object.
         """
         self.instance = instance
+        self.token = cache.get(self.token_cache_key) or self.get_token()
+        self.validate_token()
 
     # def get_headers(self):
     # return dict(Authorization=f"Bearer {settings.WORDPRESS_TOKEN}")
     # return dict(Authorization="Basic %s" % b64encode('m.rezaei:09VqT4X1dxJOwB'))
 
-    def post_request(self, url, method='post', headers=None, **kwargs):
+    def get_token(self):
+        logger.debug(f"[getting new token]-[URL: {self.urls['token']}]")
+        req = self.post_request(
+            self.urls['token'],
+            auth=False,
+            json=dict(username=settings.WP_USER, password=settings.WP_PASS),
+        )
+
+        if req.ok:
+            token = req.json()['data']['token']
+            logger.debug(f'[new token successfully added]-[token: {token}]')
+            cache.set(self.token_cache_key, token, 604800)  # 7 days default expire time
+            return token
+        else:
+            logger.critical(f'[Getting token failed]-[]')
+
+    def validate_token(self):
+        logger.debug(f"[validating the JWT Token]-[URL: {self.urls['validate-token']}]")
+        req = self.post_request(
+            self.urls['validate-token'],
+            auth=True,
+        )
+        if req.ok:
+            logger.debug(f'[Token is valid]')
+        else:
+            logger.debug(f'[JWT Token of WP is not valid or expired]')
+            self.token = self.get_token()
+
+    def post_request(self, url, method='post', headers={}, auth=True, **kwargs):
+        if auth:
+            headers.update({'Authorization': f"Bearer {self.token}"})
+
         if headers:
             kwargs.update({'headers': headers})
         return requests.request(
             method,
             f"{self.base_url + url}",
-            auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS),
+            # auth=HTTPBasicAuth(settings.WP_USER, settings.WP_PASS),
             **kwargs
         )
 

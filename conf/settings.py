@@ -119,6 +119,14 @@ CKEDITOR_CONFIGS = {
     },
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': config('CACHE_BACKEND', default='django.core.cache.backends.locmem.LocMemCache', cast=str),
+        'LOCATION': config('CACHE_HOST', default='', cast=str),
+        'KEY_PREFIX': config('CACHE_PREFIX', default='NEWS', cast=str),
+    },
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
