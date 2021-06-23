@@ -1,4 +1,113 @@
-include: "http://gitlab.yourblueapi.com/gitlab-ci.yml"
+stages:
+  - build
+  #  - test
+  - deploy
 
 variables:
-  PROJECT_DIR: "news_editorial"
+  DOCKER_DRIVER: overlay2
+  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:latest
+  CONTAINER_NGINX_IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/nginx:latest
+
+
+
+#.staging:
+#  only:
+#    refs:
+#      - develop
+#  tags:
+#    - docker
+#    - staging
+
+.production:
+  only:
+    refs:
+      - master
+    # - /^release-.*$/
+    # except:
+    # - branches
+  tags:
+    - docker
+    - production
+    - domestic
+
+.build:
+  stage: build
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab.hami.blue:5050
+
+  script:
+    - docker pull $CONTAINER_RELEASE_IMAGE || true
+    - docker pull $CONTAINER_NGINX_IMAGE || true
+
+    - docker build --cache-from $CONTAINER_RELEASE_IMAGE -t $CONTAINER_RELEASE_IMAGE .
+    - docker build --cache-from $CONTAINER_NGINX_IMAGE -t $CONTAINER_NGINX_IMAGE ./nginx/.
+
+    - docker push $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_NGINX_IMAGE
+
+
+#.test:
+#  stage: test
+#  script:
+#    - docker-compose -f docker-compose.test.yml up
+#    - docker-compose -f docker-compose.test.yml down --remove-orphans
+#  coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
+#  artifacts:
+#    paths:
+#      - htmlcov
+#  environment:
+#    name: testing
+
+.deploy:
+  stage: deploy
+  script:
+    - cd $PROJECT_PATH
+    - git pull
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab.hami.blue:5050
+    - docker pull $CONTAINER_RELEASE_IMAGE
+    - docker pull $CONTAINER_NGINX_IMAGE
+    - docker-compose down --remove-orphans
+    - docker-compose up -d
+    - docker image prune -af
+
+#build_staging:
+#  environment:
+#    name: staging
+#  extends:
+#    - .build
+#    - .staging
+
+build_production:
+  environment:
+    name: production
+  extends:
+    - .build
+    - .production
+
+#test_staging:
+#  environment:
+#    name: staging
+#  extends:
+#    - .test
+#    - .staging
+#
+#test_production:
+#  environment:
+#    name: production
+#  extends:
+#    - .test
+#    - .production
+
+#deploy_staging:
+#  environment:
+#    name: staging
+#  extends:
+#    - .deploy
+#    - .staging
+
+deploy_production:
+  environment:
+    name: production
+  extends:
+    - .deploy
+    - .production

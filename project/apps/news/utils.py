@@ -10,8 +10,6 @@ from django.utils import timezone
 from django.core.cache import cache
 
 import requests
-from requests.auth import HTTPBasicAuth
-
 
 logger = logging.getLogger(__file__)
 
@@ -114,7 +112,7 @@ class WordPressHandler:
         )
         req = self.post_request(self.urls['post'], json=payload_data, headers={'Content-Type': 'application/json'})
         if req.ok:
-            from apps.news.models import News
+            from project.apps import News
 
             self.instance.wp_post_id = req.json()['id']
             self.instance._b_status = News.STATUS_APPROVED
