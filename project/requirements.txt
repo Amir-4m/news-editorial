@@ -9,9 +9,12 @@ beautifulsoup4
 requests
 
 # admin
+Pillow
 Khayyam==3.0.17
 django_better_admin_arrayfield
 django-ckeditor
+python-memcached
+
 
 # database
 psycopg2-binary

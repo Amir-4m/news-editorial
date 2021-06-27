@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from celery.schedules import crontab
@@ -25,15 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False)
-DEVEL = config('DEVEL', default=False)
+DEBUG = config('DEBUG', default=False, cast=bool)
+DEVEL = config('DEVEL', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 
 # Application definition
 
 INSTALLED_APPS = [
-    'news.apps.NewsConfig',
+    'project.apps.news',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,12 +57,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'conf.urls'
+ROOT_URLCONF = 'project.conf.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'project/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -119,6 +119,14 @@ CKEDITOR_CONFIGS = {
     },
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': config('CACHE_BACKEND', default='django.core.cache.backends.locmem.LocMemCache', cast=str),
+        'LOCATION': config('CACHE_HOST', default='', cast=str),
+        'KEY_PREFIX': config('CACHE_PREFIX', default='NEWS', cast=str),
+    },
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
@@ -128,19 +136,30 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+# Fixtures
+FIXTURE_DIRS = [BASE_DIR / 'fixtures']
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
-# Celery Config
-CELERY_USER = config("CELERY_USER", default='guest')
-CELERY_PASS = config("CELERY_PASS", default='guest')
-CELERY_HOST = config("CELERY_HOST", default='127.0.0.1')
-CELERY_PORT = config("CELERY_PORT", default='5672')
-CELERY_VHOST = config("CELERY_VHOST", default='n_editorial')
+# Media
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
-CELERY_BROKER_URL = f"amqp://{CELERY_USER}:{CELERY_PASS}@{CELERY_HOST}:{CELERY_PORT}/{CELERY_VHOST}"
+# Celery
+CELERY_BROKER_URL = 'amqp://%(USER)s:%(PASS)s@%(HOST)s' % {
+    'USER': config('CELERY_USER'),
+    'PASS': config('CELERY_PASS'),
+    'HOST': config('CELERY_HOST'),
+}
+
 # CELERY_ENABLE_UTC = False
 # DJANGO_CELERY_BEAT_TZ_AWARE = False
+
+# Wordpress Auth
+WP_USER = config('WP_USER')
+WP_PASS = config('WP_PASS')
+

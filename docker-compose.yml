@@ -1,0 +1,68 @@
+version: '3.4'
+
+services:
+  django-app:
+    image: ${CONTAINER_RELEASE_IMAGE}
+    entrypoint: ["/entrypoint.sh"]
+    env_file: ${PROJECT_ENV}
+    restart: always
+    command: uwsgi --ini uwsgi.ini
+    volumes:
+      - ${PROJECT_PATH}/project:/app
+      - ${PROJECT_PATH}/media:/media
+      - ${PROJECT_PATH}/static:/static
+      - ${PROJECT_PATH}/logs:/logs
+    expose:
+      - 8000
+    depends_on:
+      - db
+
+  celery-worker:
+    image: ${CONTAINER_RELEASE_IMAGE}
+    restart: always
+    env_file: ${PROJECT_ENV}
+    command: celery -A conf worker -l info
+    volumes:
+      - ${PROJECT_PATH}/project:/app
+      - ${PROJECT_PATH}/media:/media
+      - ${PROJECT_PATH}/static:/static
+      - ${PROJECT_PATH}/logs:/logs
+    depends_on:
+      - db
+
+  celery-beat:
+    image: ${CONTAINER_RELEASE_IMAGE}
+    env_file: ${PROJECT_ENV}
+    restart: always
+    command: celery -A conf beat -l info -s /var/run/celerybeat-schedule --pidfile=
+    volumes:
+      - ${PROJECT_PATH}/project:/app
+      - ${PROJECT_PATH}/media:/media
+      - ${PROJECT_PATH}/static:/static
+      - ${PROJECT_PATH}/logs:/logs
+    depends_on:
+      - db
+
+  nginx:
+    image: ${CONTAINER_NGINX_IMAGE}
+    volumes:
+      - ${PROJECT_PATH}/media:/var/www/media
+      - ${PROJECT_PATH}/static:/var/www/static
+    ports:
+      - ${EXPOSE_PORT}:80
+    depends_on:
+      - django-app
+
+
+  db:
+    image: postgres:10.0-alpine
+    hostname: db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+
+volumes:
+  postgres_data:

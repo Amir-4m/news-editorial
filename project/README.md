@@ -4,6 +4,8 @@ DEVEL = True
 
 SECRET_KEY = ''
 
+ALLOWED_HOSTS = '127.0.0.1, localhost'
+
 # Database
 DB_NAME = ''
 DB_USER = ''
@@ -19,5 +21,9 @@ CELERY_PASS = 'guest'
 CELERY_HOST = '127.0.0.1'
 CELERY_PORT = 5672
 CELERY_VHOST = ''
+
+# WP Auth
+WP_USER = ''
+WP_PASS = ''
 
 ```

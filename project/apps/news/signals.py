@@ -1,8 +1,12 @@
+from django.db import models
+from django.dispatch import receiver
+
 import requests
 from bs4 import BeautifulSoup
+from khayyam import JalaliDate
 
 from .models import News
-from khayyam import JalaliDate
+from .utils import WordPressHandler
 
 jalali_months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 
@@ -136,3 +140,10 @@ def collect_yjc_news():
 
     news_image = soup.find("div", class_="body").find("img").attrs["src"]
     # print(news_image)
+
+
+@receiver(models.signals.post_save, sender=News)
+def create_word_press_post(sender, instance, **kwargs):
+    if instance._b_status != News.STATUS_APPROVED and instance.status == News.STATUS_APPROVED:
+        WordPressHandler(instance).create_post()
+

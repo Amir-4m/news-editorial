@@ -51,10 +51,9 @@ coverage.xml
 *.pot
 
 # Django stuff:
-/logs
 *.log
 media/
-static/
+static/*
 */local_*.py
 *.pid
 **/migrations/0*.py
@@ -109,4 +108,3 @@ venv.bak/
 /.idea/*
 
 htmlcov
-

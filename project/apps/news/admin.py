@@ -2,13 +2,14 @@ import difflib
 
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 
+from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 
 from .models import News, Category, NewsAgency, NewsSiteCategory
 from .forms import AssignEditor, AssignCategory, NewsForm
@@ -19,61 +20,112 @@ from .tasks import collect_news_task
 class NewsAdmin(admin.ModelAdmin):
     form = NewsForm
     radio_fields = {"status": admin.HORIZONTAL, "priority": admin.HORIZONTAL}
+    search_fields = ('news_site_id', 'news_title', 'news_summary')
+    fieldsets = (
+        ('News', {'fields': (
+            "news_title", 'get_current_news_title', "news_summary", 'get_current_news_summary',
+            "news_main_editable", 'get_news_main_content', 'news_image',
+        )}),
+        (
+            'News Data', {
+                'classes': ('collapse',), 'fields': (
+                    "priority", "status", "category", "news_date", 'get_org_news_date', "news_site", 'news_site_id',
+                )
+            }
+        ),
+        ('News Editor', {'classes': ('collapse',), 'fields': ('number_of_changes', 'editor', 'comment',)}),
+        ('News Extra', {'classes': ('collapse',), 'fields': ('wp_post_id', 'news_category', 'get_direct_link')})
+    )
 
     def get_queryset(self, request):
-        chief_group = Group.objects.get(name__exact="editors_chief").user_set.all()
-        monitoring_group = Group.objects.get(name__exact="monitoring").user_set.all()
-
-        if request.user.is_superuser or request.user in chief_group:
-            return News.objects.all()
-        elif request.user in monitoring_group:
-            return News.objects.filter(status__in=["void", "junk", "editable"])
-        return News.objects.filter(editor__exact=request.user).filter(status__in=["assigned", "rejected"])
-
-    def changelist_view(self, request, extra_context=None):
         user_groups = [g.name for g in request.user.groups.all()]
-        if 'editors' in user_groups:
-            self.list_display = (
-                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
-                "news_date",
-            )
-            self.fields = (
-                "news_site", "news_date", "news_title", "news_summary", "news_main_editable", "comment", "status",
-                "priority", "news_image"
-            )
-            self.list_filter = ("news_site", "news_date", "priority")
-            self.readonly_fields = ("news_site", "status", "priority")
-            self.change_form_template = "edit_form.html"
-            self.actions = []
+
+        if request.user.is_superuser or 'chief' in user_groups:
+            return News.objects.all()
 
         elif 'monitoring' in user_groups:
-            self.list_display = ("news_title", "status", "created_time", "news_site", "news_category",
-                                 "chapar_category", "news_date")
-            self.fields = ("news_site", "news_date", "news_summary", "news_main")
-            self.readonly_fields = ("news_site", "news_date", "news_summary", "news_main")
-            self.list_filter = ("news_site", "news_date", "category",)
+            return News.objects.filter(status__in=["void", "junk", "editable"])
+
+        return News.objects.filter(editor=request.user).filter(status__in=["assigned", "rejected"])
+
+    def get_readonly_fields(self, request, obj=None):
+        user_groups = [g.name for g in request.user.groups.all()]
+        # monitor
+        if 'monitoring' in user_groups:
+            return (
+                "news_date", 'news_title', "news_summary", "priority", "status", "category", "news_site",
+                'get_current_news_title', 'get_current_news_summary', 'get_news_main_content', 'news_site_id',
+                'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link', 'get_org_news_date'
+            )
+        # superuser, chief
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return (
+                "news_date", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
+                'news_site_id', 'get_direct_link', 'news_category', 'editor', 'news_site', 'number_of_changes',
+                'get_org_news_date'
+            )
+        # editor
+        return (
+            "news_site", 'get_current_news_title', 'get_current_news_summary', 'get_news_main_content',
+            'news_site_id', 'wp_post_id', 'news_category', 'editor', 'number_of_changes', 'get_direct_link',
+            "status", "priority", 'category', 'news_date', 'get_org_news_date'
+        )
+
+    def get_list_display(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'monitoring' in user_groups:
+            return (
+                "news_title", "status", "created_time", "news_site", "news_category", "chapar_category", "news_date"
+            )
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return (
+                "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
+                "news_date", "editor", "news_site_id"
+            )
+        # editor
+        return (
+            "news_title", "status", "priority", "created_time", "news_site", "news_category", "chapar_category",
+            "news_date"
+        )
+
+    def get_list_filter(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'monitoring' in user_groups:
+            return "news_site", "news_date", 'priority', "category", "news_category"
+        elif request.user.is_superuser or 'chief' in user_groups:
+            return "news_site", "news_date", 'priority', "editor", "status", "category", "news_category"
+        # editor
+        return "news_site", "news_date", 'priority', "category", "news_category"
+
+    def get_actions(self, request):
+        user_groups = [g.name for g in request.user.groups.all()]
+        if 'editors' in user_groups:
+            self.actions = []
+        elif 'monitoring' in user_groups:
             self.actions = ["junk_status", "editable_status"]
-            self.search_fields = ("news_category",)
+        elif request.user.is_superuser or 'chief' in user_groups:
+            self.actions = ["assign_editor", "assign_category", 'junk_status']
+        return super().get_actions(request)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        user_groups = [g.name for g in request.user.groups.all()]
+        # Editors
+        if 'editors' in user_groups:
+            self.change_form_template = "edit_form.html"
+        # Monitors
+        elif 'monitoring' in user_groups:
+            self.change_form_template = 'admin/change_form.html'
+        # Superuser, Chief
+        elif request.user.is_superuser or 'chief' in user_groups:
             self.change_form_template = 'admin/change_form.html'
 
-        elif request.user.is_superuser or 'chief' in user_groups:
-            self.search_fields = ('news_site_id',)
-            self.list_display = ("news_title", "status", "priority", "created_time", "news_site", "news_category",
-                                 "chapar_category", "news_date", "editor", "news_site_id")
-            self.fields = ["news_site", "news_date", "category", "news_title", "news_summary", "news_main",
-                           "news_main_editable", "comment", "editor", "status", "priority", "number_of_changes",
-                           "news_image"]
-            self.list_filter = ("news_site", "news_date", 'priority', "editor", "status", "category", "news_category")
-            self.readonly_fields = ("news_site", "news_main", "number_of_changes")
-            self.actions = ["assign_editor", "assign_category"]
-            self.change_form_template = 'admin/change_form.html'
-        return super().changelist_view(request, extra_context)
+        return super().change_view(request, object_id, form_url, extra_context)
 
     def chapar_category(self, obj):
         return "\n".join([c.title for c in obj.category.all()])
 
     def response_change(self, request, instance):
-        editors = Group.objects.get(name="editors").user_set.all()
+        editors = User.objects.filter(groups__name='editors')
         if request.user in editors:
             if "_edited" in request.POST:
                 matching_names_except_this = self.get_queryset(request).filter(
@@ -84,7 +136,7 @@ class NewsAdmin(admin.ModelAdmin):
                 instance.status = "edited"
 
                 changes = 0
-                for s in difflib.ndiff(instance.news_main, instance.news_main_editable):
+                for s in difflib.ndiff(instance.news_data.get('org_news_main'), instance.news_main_editable):
                     if s[0] == "+" or s[0] == "-":
                         changes += 1
 
@@ -96,6 +148,7 @@ class NewsAdmin(admin.ModelAdmin):
         else:
             return super().response_change(request, instance)
 
+    # Custom Actions
     def assign_category(self, request, queryset):
         form = None
         if '_assign_category' in request.POST:
@@ -134,14 +187,13 @@ class NewsAdmin(admin.ModelAdmin):
         if '_assign_editor' in request.POST:
             form = AssignEditor(request.POST)
             for news in queryset.iterator():
-                if news.status != "editable" or news.status == "junk":
+                if news.status != News.STATUS_EDITABLE or news.status == News.STATUS_JUNK:
                     e_messages.append(_(
                         f"News with id = {news.id} Could not be Assigned to Editors ---> News Status is {news.status.upper()}'."))
                 else:
                     if form.is_valid():
                         editor = form.cleaned_data['editor']
-                        queryset.update(editor=editor)
-                        queryset.update(status="assigned")
+                        queryset.update(editor=editor, status=News.STATUS_ASSIGNED)
                         count = len(queryset)
                         self.message_user(request, f"Successfully Assigned {count} News  to {editor}.")
                         return HttpResponseRedirect(request.get_full_path())
@@ -159,10 +211,34 @@ class NewsAdmin(admin.ModelAdmin):
         queryset.update(status="editable")
     editable_status.short_description = _("Change the Status to Editable")
 
+    # Custom Fields
+    def get_org_news_date(self, obj):
+        return mark_safe(f"<p>{obj.news_data.get('org_news_date')}</p>")
+    get_org_news_date.short_description = _('original news date')
+
+    def get_news_main_content(self, obj):
+        return mark_safe(f"""<div dir="rtl">{obj.news_data.get('org_news_main')}</div>""")
+    get_news_main_content.short_description = _('news main')
+
+    def get_current_news_summary(self, obj):
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_summary')}</p>")
+    get_current_news_summary.short_description = _('current news summary')
+
+    def get_current_news_title(self, obj):
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_title')}</p>")
+    get_current_news_title.short_description = _('current title')
+
+    def get_current_image(self, obj):
+        return mark_safe(f"<p dir='rtl'>{obj.news_data.get('org_news_image')}</p>")
+    get_current_image.short_description = _('current image')
+
+    def get_direct_link(self, obj):
+        return mark_safe(f"<a href={obj.direct_link} target='blank'>Link</a>")
+
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("title",)
+    list_display = ("title", "word_press_id")
 
 
 @admin.register(NewsAgency)
@@ -172,7 +248,7 @@ class NewsAgencyAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     def save_model(self, request, obj, form, change):
         if "_crawl" in request.POST:
-            collect_news_task.apply_async(args=(obj.news_website.split('.')[0],))
+            collect_news_task.apply_async(args=(obj.slug,))
             self.message_user(request, f"News from {obj.news_website} has been crawled")
             return HttpResponseRedirect(reverse_lazy('admin:news_news_changelist'))
         return super().save_model(request, obj, form, change)
@@ -190,9 +266,3 @@ class NewsSiteCategoryAdmin(admin.ModelAdmin):
     list_display = ('site_category_name', 'category', 'news_agency', 'news_url')
     list_filter = ('category', 'news_agency')
     list_editable = ('news_agency',)
-
-
-admin.site.site_header = _("Chapar News Editorial")
-admin.site.site_title = _("Chapar News")
-admin.site.index_title = _("Welcome to Chapar News")
-admin.site.empty_value_display = _("Unknown")
