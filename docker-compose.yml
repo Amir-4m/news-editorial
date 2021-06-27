@@ -60,9 +60,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=news_editorial_user
+      - POSTGRES_PASSWORD=3c37913edf
+      - POSTGRES_DB=news_editorial
 
 volumes:
   postgres_data:
