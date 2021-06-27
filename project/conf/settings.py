@@ -33,7 +33,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=Csv())
 # Application definition
 
 INSTALLED_APPS = [
-    'project.apps.news',
+    'apps.news',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,12 +57,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'project.conf.urls'
+ROOT_URLCONF = 'conf.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'project/templates'],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
