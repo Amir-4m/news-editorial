@@ -55,7 +55,7 @@ services:
 
 
   db:
-    image: postgres:10.0-alpine
+    image: postgres:13
     hostname: db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
