@@ -14,7 +14,7 @@ Khayyam==3.0.17
 django_better_admin_arrayfield
 django-ckeditor
 python-memcached
-
+uwsgi
 
 # database
 psycopg2-binary==2.8.6
